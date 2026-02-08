@@ -17,6 +17,7 @@ export function Navbar() {
           <Link to="/dashboard" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Dashboard</Link>
           <Link to="/upload" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Upload</Link>
           <Link to="/reports" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Reports</Link>
+          <Link to="/compare" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Compare</Link>
         </nav>
         <div className="flex items-center gap-3">
           <Link to="/dashboard">

@@ -14,6 +14,7 @@ import {
   Upload,
   TrendingUp,
   Eye,
+  GitCompareArrows,
 } from "lucide-react";
 
 const recentCandidates = [
@@ -42,11 +43,18 @@ export default function Dashboard() {
               <h1 className="text-2xl font-display font-bold text-foreground">Recruiter Dashboard</h1>
               <p className="text-muted-foreground text-sm mt-1">Overview of resume verification activity</p>
             </div>
-            <Link to="/upload">
-              <Button className="gradient-accent text-accent-foreground border-0 font-semibold hover:opacity-90 transition-opacity gap-2">
-                <Upload className="h-4 w-4" /> Upload Resume
-              </Button>
-            </Link>
+            <div className="flex items-center gap-3">
+              <Link to="/compare">
+                <Button variant="outline" className="font-semibold gap-2">
+                  <GitCompareArrows className="h-4 w-4" /> Compare
+                </Button>
+              </Link>
+              <Link to="/upload">
+                <Button className="gradient-accent text-accent-foreground border-0 font-semibold hover:opacity-90 transition-opacity gap-2">
+                  <Upload className="h-4 w-4" /> Upload Resume
+                </Button>
+              </Link>
+            </div>
           </div>
 
           {/* Stats Grid */}
