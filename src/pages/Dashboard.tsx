@@ -4,6 +4,7 @@ import { ScoreBadge, getScoreLevel } from "@/components/ScoreDisplay";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
@@ -16,23 +17,38 @@ import {
   Eye,
   GitCompareArrows,
 } from "lucide-react";
-
-const recentCandidates = [
-  { id: "sample", name: "Aarav Mehta", role: "Full Stack Developer", score: 78, date: "Feb 7, 2026" },
-  { id: "2", name: "Priya Sharma", role: "Data Scientist", score: 91, date: "Feb 6, 2026" },
-  { id: "3", name: "Rahul Patel", role: "DevOps Engineer", score: 42, date: "Feb 5, 2026" },
-  { id: "4", name: "Sneha Iyer", role: "UI/UX Designer", score: 65, date: "Feb 4, 2026" },
-  { id: "5", name: "Vikram Singh", role: "Backend Developer", score: 85, date: "Feb 3, 2026" },
-];
-
-const stats = [
-  { label: "Total Resumes", value: "247", icon: FileText, change: "+12 this week" },
-  { label: "Verified", value: "189", icon: CheckCircle2, change: "76.5% rate" },
-  { label: "At Risk", value: "23", icon: AlertTriangle, change: "9.3% flagged" },
-  { label: "Candidates", value: "198", icon: Users, change: "+8 new" },
-];
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import type { Resume } from "@/lib/types";
 
 export default function Dashboard() {
+  const { profileId } = useAuth();
+
+  const { data: resumes = [], isLoading } = useQuery({
+    queryKey: ["resumes", profileId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("resumes")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as Resume[];
+    },
+    enabled: !!profileId,
+  });
+
+  const completedResumes = resumes.filter(r => r.status === "completed");
+  const verifiedCount = completedResumes.filter(r => r.overall_score >= 70).length;
+  const atRiskCount = completedResumes.filter(r => r.overall_score < 50).length;
+
+  const stats = [
+    { label: "Total Resumes", value: String(resumes.length), icon: FileText, change: `${completedResumes.length} analyzed` },
+    { label: "Verified", value: String(verifiedCount), icon: CheckCircle2, change: completedResumes.length > 0 ? `${((verifiedCount / completedResumes.length) * 100).toFixed(0)}% rate` : "0% rate" },
+    { label: "At Risk", value: String(atRiskCount), icon: AlertTriangle, change: completedResumes.length > 0 ? `${((atRiskCount / completedResumes.length) * 100).toFixed(0)}% flagged` : "0% flagged" },
+    { label: "Candidates", value: String(completedResumes.length), icon: Users, change: "analyzed" },
+  ];
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
@@ -72,7 +88,7 @@ export default function Dashboard() {
                       <stat.icon className="h-5 w-5 text-accent" />
                       <TrendingUp className="h-3.5 w-3.5 text-muted-foreground" />
                     </div>
-                    <p className="text-2xl font-display font-bold text-foreground">{stat.value}</p>
+                    <p className="text-2xl font-display font-bold text-foreground">{isLoading ? "—" : stat.value}</p>
                     <p className="text-xs text-muted-foreground mt-1">{stat.label}</p>
                     <p className="text-xs text-accent mt-0.5 font-medium">{stat.change}</p>
                   </CardContent>
@@ -87,38 +103,72 @@ export default function Dashboard() {
               <CardTitle className="text-lg font-display">Recent Verifications</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                {recentCandidates.map((candidate, i) => {
-                  const level = getScoreLevel(candidate.score);
-                  return (
-                    <motion.div
-                      key={candidate.id}
-                      initial={{ opacity: 0, x: -8 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.06 }}
-                    >
-                      <Link
-                        to={`/reports/${candidate.id}`}
-                        className="flex items-center gap-4 p-4 rounded-lg hover:bg-secondary/50 transition-colors group"
+              {isLoading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="flex items-center gap-4 p-4">
+                      <Skeleton className="h-10 w-10 rounded-full" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-3 w-24" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : resumes.length === 0 ? (
+                <div className="text-center py-8">
+                  <FileText className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-muted-foreground text-sm">No resumes analyzed yet.</p>
+                  <Link to="/upload">
+                    <Button variant="outline" className="mt-3" size="sm">Upload your first resume</Button>
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {resumes.slice(0, 10).map((resume, i) => {
+                    const level = resume.status === "completed" ? getScoreLevel(resume.overall_score) : "medium";
+                    return (
+                      <motion.div
+                        key={resume.id}
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.06 }}
                       >
-                        <ScoreBadge score={candidate.score} size="sm" />
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-foreground text-sm">{candidate.name}</p>
-                          <p className="text-xs text-muted-foreground">{candidate.role}</p>
-                        </div>
-                        <span className="text-xs text-muted-foreground hidden sm:block">{candidate.date}</span>
-                        <Badge
-                          variant="secondary"
-                          className={`text-xs ${level === "high" ? "score-high" : level === "medium" ? "score-medium" : "score-low"}`}
+                        <Link
+                          to={`/reports/${resume.id}`}
+                          className="flex items-center gap-4 p-4 rounded-lg hover:bg-secondary/50 transition-colors group"
                         >
-                          {candidate.score}%
-                        </Badge>
-                        <Eye className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </Link>
-                    </motion.div>
-                  );
-                })}
-              </div>
+                          <ScoreBadge score={resume.status === "completed" ? resume.overall_score : 0} size="sm" />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-foreground text-sm">
+                              {resume.candidate_name || resume.file_name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {resume.candidate_role || resume.status}
+                            </p>
+                          </div>
+                          <span className="text-xs text-muted-foreground hidden sm:block">
+                            {new Date(resume.created_at).toLocaleDateString()}
+                          </span>
+                          {resume.status === "completed" ? (
+                            <Badge
+                              variant="secondary"
+                              className={`text-xs ${level === "high" ? "score-high" : level === "medium" ? "score-medium" : "score-low"}`}
+                            >
+                              {resume.overall_score}%
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" className="text-xs">
+                              {resume.status}
+                            </Badge>
+                          )}
+                          <Eye className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </Link>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

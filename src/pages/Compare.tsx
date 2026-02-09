@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Users,
@@ -15,104 +16,79 @@ import {
   AlertTriangle,
   XCircle,
   BarChart3,
+  FileText,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import type { Resume, ResumeSkill } from "@/lib/types";
 
-interface CandidateData {
+interface CandidateWithSkills {
   id: string;
   name: string;
   role: string;
-  experience: string;
   overallScore: number;
-  skills: { name: string; score: number; status: "verified" | "partial" | "risk" }[];
+  skills: { name: string; score: number; confidence: "verified" | "partially_verified" | "unverified" }[];
 }
 
-const candidatesPool: CandidateData[] = [
-  {
-    id: "1",
-    name: "Aarav Mehta",
-    role: "Full Stack Developer",
-    experience: "4 years",
-    overallScore: 78,
-    skills: [
-      { name: "React", score: 92, status: "verified" },
-      { name: "Node.js", score: 85, status: "verified" },
-      { name: "Python", score: 45, status: "partial" },
-      { name: "AWS", score: 30, status: "risk" },
-      { name: "TypeScript", score: 88, status: "verified" },
-      { name: "Docker", score: 62, status: "partial" },
-    ],
-  },
-  {
-    id: "2",
-    name: "Priya Sharma",
-    role: "Data Scientist",
-    experience: "5 years",
-    overallScore: 91,
-    skills: [
-      { name: "Python", score: 95, status: "verified" },
-      { name: "TensorFlow", score: 88, status: "verified" },
-      { name: "SQL", score: 82, status: "verified" },
-      { name: "AWS", score: 74, status: "verified" },
-      { name: "React", score: 35, status: "risk" },
-      { name: "Docker", score: 70, status: "partial" },
-    ],
-  },
-  {
-    id: "3",
-    name: "Rahul Patel",
-    role: "DevOps Engineer",
-    experience: "3 years",
-    overallScore: 42,
-    skills: [
-      { name: "Docker", score: 48, status: "partial" },
-      { name: "AWS", score: 38, status: "risk" },
-      { name: "Python", score: 55, status: "partial" },
-      { name: "Kubernetes", score: 28, status: "risk" },
-      { name: "TypeScript", score: 32, status: "risk" },
-      { name: "Node.js", score: 40, status: "partial" },
-    ],
-  },
-  {
-    id: "4",
-    name: "Sneha Iyer",
-    role: "UI/UX Designer",
-    experience: "6 years",
-    overallScore: 65,
-    skills: [
-      { name: "Figma", score: 94, status: "verified" },
-      { name: "React", score: 58, status: "partial" },
-      { name: "CSS", score: 90, status: "verified" },
-      { name: "TypeScript", score: 42, status: "partial" },
-      { name: "Node.js", score: 20, status: "risk" },
-      { name: "Docker", score: 15, status: "risk" },
-    ],
-  },
-  {
-    id: "5",
-    name: "Vikram Singh",
-    role: "Backend Developer",
-    experience: "7 years",
-    overallScore: 85,
-    skills: [
-      { name: "Node.js", score: 92, status: "verified" },
-      { name: "Python", score: 88, status: "verified" },
-      { name: "AWS", score: 80, status: "verified" },
-      { name: "Docker", score: 85, status: "verified" },
-      { name: "TypeScript", score: 78, status: "verified" },
-      { name: "React", score: 50, status: "partial" },
-    ],
-  },
-];
-
-const statusIcon = {
+const confidenceIcon = {
   verified: CheckCircle2,
-  partial: AlertTriangle,
-  risk: XCircle,
+  partially_verified: AlertTriangle,
+  unverified: XCircle,
+};
+
+const confidenceLabel = {
+  verified: "Verified",
+  partially_verified: "Partial",
+  unverified: "Risk",
 };
 
 export default function ComparePage() {
+  const { profileId } = useAuth();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  const { data: candidates = [], isLoading } = useQuery({
+    queryKey: ["compare-candidates", profileId],
+    queryFn: async () => {
+      // Fetch completed resumes
+      const { data: resumes, error: rErr } = await supabase
+        .from("resumes")
+        .select("*")
+        .eq("status", "completed")
+        .order("created_at", { ascending: false });
+      if (rErr) throw rErr;
+
+      if (!resumes || resumes.length === 0) return [];
+
+      // Fetch all skills for these resumes
+      const resumeIds = resumes.map((r: any) => r.id);
+      const { data: skills, error: sErr } = await supabase
+        .from("resume_skills")
+        .select("*")
+        .in("resume_id", resumeIds);
+      if (sErr) throw sErr;
+
+      const skillsByResume = new Map<string, ResumeSkill[]>();
+      (skills || []).forEach((s: ResumeSkill) => {
+        if (!skillsByResume.has(s.resume_id)) skillsByResume.set(s.resume_id, []);
+        skillsByResume.get(s.resume_id)!.push(s);
+      });
+
+      return resumes.map((r: any): CandidateWithSkills => ({
+        id: r.id,
+        name: r.candidate_name || r.file_name,
+        role: r.candidate_role || "Unknown",
+        overallScore: r.overall_score,
+        skills: (skillsByResume.get(r.id) || []).map(s => ({
+          name: s.skill_name,
+          score: s.score,
+          confidence: s.confidence,
+        })),
+      }));
+    },
+    enabled: !!profileId,
+  });
 
   const toggleCandidate = (id: string) => {
     setSelectedIds((prev) => {
@@ -122,17 +98,15 @@ export default function ComparePage() {
     });
   };
 
-  const selected = candidatesPool.filter((c) => selectedIds.includes(c.id));
+  const selected = candidates.filter((c) => selectedIds.includes(c.id));
 
-  // Collect all unique skill names across selected candidates
   const allSkills = Array.from(
     new Set(selected.flatMap((c) => c.skills.map((s) => s.name)))
   );
 
-  const getSkill = (candidate: CandidateData, skillName: string) =>
+  const getSkill = (candidate: CandidateWithSkills, skillName: string) =>
     candidate.skills.find((s) => s.name === skillName);
 
-  // Find the best score for highlighting
   const getBestForSkill = (skillName: string) => {
     let best = -1;
     let bestId = "";
@@ -175,35 +149,49 @@ export default function ComparePage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {candidatesPool.map((c) => {
-                  const isSelected = selectedIds.includes(c.id);
-                  const isDisabled = !isSelected && selectedIds.length >= 3;
-                  return (
-                    <button
-                      key={c.id}
-                      onClick={() => !isDisabled && toggleCandidate(c.id)}
-                      disabled={isDisabled}
-                      className={`
-                        flex items-center gap-3 p-3 rounded-lg border text-left transition-all duration-200
-                        ${isSelected
-                          ? "border-accent bg-accent/5 shadow-elevated"
-                          : isDisabled
-                          ? "border-border bg-muted/30 opacity-50 cursor-not-allowed"
-                          : "border-border bg-card hover:border-accent/40 hover:shadow-card cursor-pointer"
-                        }
-                      `}
-                    >
-                      <Checkbox checked={isSelected} className="pointer-events-none" />
-                      <ScoreBadge score={c.overallScore} size="sm" />
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">{c.name}</p>
-                        <p className="text-xs text-muted-foreground truncate">{c.role}</p>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+              {isLoading ? (
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {[1, 2, 3].map(i => <Skeleton key={i} className="h-16 rounded-lg" />)}
+                </div>
+              ) : candidates.length === 0 ? (
+                <div className="text-center py-8">
+                  <FileText className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-muted-foreground text-sm">No completed reports to compare.</p>
+                  <Link to="/upload">
+                    <Button variant="outline" className="mt-3" size="sm">Upload resumes first</Button>
+                  </Link>
+                </div>
+              ) : (
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {candidates.map((c) => {
+                    const isSelected = selectedIds.includes(c.id);
+                    const isDisabled = !isSelected && selectedIds.length >= 3;
+                    return (
+                      <button
+                        key={c.id}
+                        onClick={() => !isDisabled && toggleCandidate(c.id)}
+                        disabled={isDisabled}
+                        className={`
+                          flex items-center gap-3 p-3 rounded-lg border text-left transition-all duration-200
+                          ${isSelected
+                            ? "border-accent bg-accent/5 shadow-elevated"
+                            : isDisabled
+                            ? "border-border bg-muted/30 opacity-50 cursor-not-allowed"
+                            : "border-border bg-card hover:border-accent/40 hover:shadow-card cursor-pointer"
+                          }
+                        `}
+                      >
+                        <Checkbox checked={isSelected} className="pointer-events-none" />
+                        <ScoreBadge score={c.overallScore} size="sm" />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{c.name}</p>
+                          <p className="text-xs text-muted-foreground truncate">{c.role}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -229,7 +217,6 @@ export default function ComparePage() {
                           <ScoreBadge score={c.overallScore} size="lg" className="mx-auto mb-3" />
                           <h3 className="font-display font-semibold text-foreground">{c.name}</h3>
                           <p className="text-sm text-muted-foreground">{c.role}</p>
-                          <p className="text-xs text-muted-foreground mt-1">{c.experience}</p>
                         </div>
                       ))}
                     </div>
@@ -262,14 +249,14 @@ export default function ComparePage() {
                                   );
                                 }
                                 const level = getScoreLevel(skill.score);
-                                const Icon = statusIcon[skill.status];
+                                const Icon = confidenceIcon[skill.confidence];
                                 const isBest = c.id === bestId;
                                 return (
                                   <div key={c.id} className={`rounded-lg p-2.5 ${isBest ? "bg-accent/5 ring-1 ring-accent/20" : "bg-secondary/30"}`}>
                                     <div className="flex items-center justify-between mb-1.5">
                                       <Badge variant="secondary" className="text-xs gap-1">
                                         <Icon className="h-3 w-3" />
-                                        {skill.status === "verified" ? "Verified" : skill.status === "partial" ? "Partial" : "Risk"}
+                                        {confidenceLabel[skill.confidence]}
                                       </Badge>
                                       <span
                                         className={`text-sm font-bold ${
@@ -307,9 +294,11 @@ export default function ComparePage() {
                   <CardContent>
                     <div className={`grid ${selected.length === 2 ? "grid-cols-2" : "grid-cols-3"} gap-4`}>
                       {selected.map((c) => {
-                        const verified = c.skills.filter((s) => s.status === "verified").length;
-                        const atRisk = c.skills.filter((s) => s.status === "risk").length;
-                        const avg = Math.round(c.skills.reduce((sum, s) => sum + s.score, 0) / c.skills.length);
+                        const verified = c.skills.filter((s) => s.confidence === "verified").length;
+                        const atRisk = c.skills.filter((s) => s.confidence === "unverified").length;
+                        const avg = c.skills.length > 0
+                          ? Math.round(c.skills.reduce((sum, s) => sum + s.score, 0) / c.skills.length)
+                          : 0;
                         return (
                           <div key={c.id} className="space-y-2 text-sm">
                             <p className="font-display font-semibold text-foreground">{c.name}</p>
@@ -325,7 +314,7 @@ export default function ComparePage() {
                               <span className="text-muted-foreground">Avg. Score</span>
                               <span className="font-medium text-foreground">{avg}%</span>
                             </div>
-                            <Link to={`/reports/${c.id === "1" ? "sample" : c.id}`}>
+                            <Link to={`/reports/${c.id}`}>
                               <Button variant="outline" size="sm" className="w-full mt-2 text-xs">
                                 View Full Report
                               </Button>

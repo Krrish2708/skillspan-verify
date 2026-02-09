@@ -14,13 +14,131 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          auth_id: string
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          auth_id: string
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          auth_id?: string
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      resume_skills: {
+        Row: {
+          category: string | null
+          confidence: string
+          created_at: string
+          evidence: string | null
+          id: string
+          resume_id: string
+          score: number
+          skill_name: string
+        }
+        Insert: {
+          category?: string | null
+          confidence?: string
+          created_at?: string
+          evidence?: string | null
+          id?: string
+          resume_id: string
+          score?: number
+          skill_name: string
+        }
+        Update: {
+          category?: string | null
+          confidence?: string
+          created_at?: string
+          evidence?: string | null
+          id?: string
+          resume_id?: string
+          score?: number
+          skill_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resume_skills_resume_id_fkey"
+            columns: ["resume_id"]
+            isOneToOne: false
+            referencedRelation: "resumes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      resumes: {
+        Row: {
+          candidate_name: string | null
+          candidate_role: string | null
+          created_at: string
+          file_name: string
+          file_url: string | null
+          id: string
+          overall_score: number | null
+          parsed_data: Json | null
+          profile_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          candidate_name?: string | null
+          candidate_role?: string | null
+          created_at?: string
+          file_name: string
+          file_url?: string | null
+          id?: string
+          overall_score?: number | null
+          parsed_data?: Json | null
+          profile_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          candidate_name?: string | null
+          candidate_role?: string | null
+          created_at?: string
+          file_name?: string
+          file_url?: string | null
+          id?: string
+          overall_score?: number | null
+          parsed_data?: Json | null
+          profile_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resumes_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_own_profile: { Args: { profile_id: string }; Returns: boolean }
+      is_own_resume: { Args: { resume_id: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
