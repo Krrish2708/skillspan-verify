@@ -1,22 +1,34 @@
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { ScoreBadge, getScoreLevel } from "@/components/ScoreDisplay";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Eye, FileText } from "lucide-react";
-
-const allReports = [
-  { id: "sample", name: "Aarav Mehta", role: "Full Stack Developer", score: 78, date: "Feb 7, 2026", skills: 8 },
-  { id: "2", name: "Priya Sharma", role: "Data Scientist", score: 91, date: "Feb 6, 2026", skills: 6 },
-  { id: "3", name: "Rahul Patel", role: "DevOps Engineer", score: 42, date: "Feb 5, 2026", skills: 7 },
-  { id: "4", name: "Sneha Iyer", role: "UI/UX Designer", score: 65, date: "Feb 4, 2026", skills: 5 },
-  { id: "5", name: "Vikram Singh", role: "Backend Developer", score: 85, date: "Feb 3, 2026", skills: 9 },
-  { id: "6", name: "Ananya Das", role: "ML Engineer", score: 73, date: "Feb 2, 2026", skills: 7 },
-];
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import type { Resume } from "@/lib/types";
 
 export default function ReportsPage() {
+  const { profileId } = useAuth();
+
+  const { data: resumes = [], isLoading } = useQuery({
+    queryKey: ["reports", profileId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("resumes")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as Resume[];
+    },
+    enabled: !!profileId,
+  });
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
@@ -27,38 +39,61 @@ export default function ReportsPage() {
             <p className="text-muted-foreground text-sm mt-1">All resume authenticity reports</p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {allReports.map((report, i) => {
-              const level = getScoreLevel(report.score);
-              return (
-                <motion.div
-                  key={report.id}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.06 }}
-                >
-                  <Link to={`/reports/${report.id}`}>
-                    <Card className="shadow-card hover:shadow-elevated transition-all duration-200 group cursor-pointer h-full">
-                      <CardContent className="p-5">
-                        <div className="flex items-start justify-between mb-4">
-                          <ScoreBadge score={report.score} size="md" />
-                          <Eye className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                        </div>
-                        <h3 className="font-display font-semibold text-foreground">{report.name}</h3>
-                        <p className="text-sm text-muted-foreground mb-3">{report.role}</p>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <FileText className="h-3 w-3" />
-                          <span>{report.skills} skills analyzed</span>
-                          <span>·</span>
-                          <span>{report.date}</span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                </motion.div>
-              );
-            })}
-          </div>
+          {isLoading ? (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[1, 2, 3].map(i => (
+                <Skeleton key={i} className="h-40 w-full rounded-xl" />
+              ))}
+            </div>
+          ) : resumes.length === 0 ? (
+            <div className="text-center py-16">
+              <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-display font-semibold text-foreground mb-2">No reports yet</h3>
+              <p className="text-muted-foreground text-sm mb-4">Upload a resume to generate your first verification report.</p>
+              <Link to="/upload">
+                <Button className="gradient-accent text-accent-foreground border-0 font-semibold hover:opacity-90">Upload Resume</Button>
+              </Link>
+            </div>
+          ) : (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {resumes.map((resume, i) => {
+                const level = resume.status === "completed" ? getScoreLevel(resume.overall_score) : "medium";
+                return (
+                  <motion.div
+                    key={resume.id}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.06 }}
+                  >
+                    <Link to={`/reports/${resume.id}`}>
+                      <Card className="shadow-card hover:shadow-elevated transition-all duration-200 group cursor-pointer h-full">
+                        <CardContent className="p-5">
+                          <div className="flex items-start justify-between mb-4">
+                            {resume.status === "completed" ? (
+                              <ScoreBadge score={resume.overall_score} size="md" />
+                            ) : (
+                              <Badge variant="secondary" className="text-xs capitalize">{resume.status}</Badge>
+                            )}
+                            <Eye className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </div>
+                          <h3 className="font-display font-semibold text-foreground">
+                            {resume.candidate_name || resume.file_name}
+                          </h3>
+                          <p className="text-sm text-muted-foreground mb-3">
+                            {resume.candidate_role || "Processing..."}
+                          </p>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <FileText className="h-3 w-3" />
+                            <span>{new Date(resume.created_at).toLocaleDateString()}</span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </main>
       <Footer />

@@ -5,12 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Upload, FileText, X, ArrowRight, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 export default function UploadPage() {
   const [file, setFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+  const [statusText, setStatusText] = useState("");
   const navigate = useNavigate();
+  const { user, profileId } = useAuth();
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -29,11 +34,80 @@ export default function UploadPage() {
     if (e.target.files?.[0]) setFile(e.target.files[0]);
   };
 
-  const handleAnalyze = () => {
+  const extractTextFromFile = async (file: File): Promise<string> => {
+    return await file.text();
+  };
+
+  const handleAnalyze = async () => {
+    if (!file || !user || !profileId) {
+      if (!user) {
+        toast({ title: "Please sign in", description: "You need to be logged in to analyze resumes.", variant: "destructive" });
+        navigate("/auth");
+      }
+      return;
+    }
+
     setAnalyzing(true);
-    setTimeout(() => {
-      navigate("/reports/sample");
-    }, 2000);
+    setStatusText("Uploading file...");
+
+    try {
+      // Upload file to storage
+      const filePath = `${user.id}/${Date.now()}-${file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from("resume-files")
+        .upload(filePath, file);
+
+      if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
+
+      setStatusText("Creating record...");
+
+      // Create resume record
+      const { data: resume, error: insertError } = await supabase
+        .from("resumes")
+        .insert({
+          profile_id: profileId,
+          file_name: file.name,
+          file_url: filePath,
+          status: "pending",
+        })
+        .select("id")
+        .single();
+
+      if (insertError) throw new Error(`Record creation failed: ${insertError.message}`);
+
+      setStatusText("Extracting text...");
+
+      // Extract text from file
+      const resumeText = await extractTextFromFile(file);
+
+      setStatusText("AI is analyzing your resume...");
+
+      // Call AI parse function
+      const { data: fnData, error: fnError } = await supabase.functions.invoke("parse-resume", {
+        body: { resumeId: resume.id, resumeText },
+      });
+
+      if (fnError) {
+        throw new Error(fnError.message || "Analysis failed");
+      }
+
+      if (fnData?.error) {
+        throw new Error(fnData.error);
+      }
+
+      toast({ title: "Analysis complete!", description: "Your resume has been verified." });
+      navigate(`/reports/${resume.id}`);
+    } catch (err: any) {
+      console.error("Analysis error:", err);
+      toast({
+        title: "Analysis failed",
+        description: err.message || "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setAnalyzing(false);
+      setStatusText("");
+    }
   };
 
   return (
@@ -43,7 +117,7 @@ export default function UploadPage() {
         <div className="container max-w-2xl mx-auto px-4">
           <div className="text-center mb-10">
             <h1 className="text-3xl font-display font-bold text-foreground mb-3">Upload Resume</h1>
-            <p className="text-muted-foreground">Upload a PDF or DOC file to analyze skill authenticity and generate a trust score.</p>
+            <p className="text-muted-foreground">Upload a PDF or text file to analyze skill authenticity and generate a trust score.</p>
           </div>
 
           <motion.div
@@ -62,13 +136,13 @@ export default function UploadPage() {
             <input
               id="file-input"
               type="file"
-              accept=".pdf,.doc,.docx"
+              accept=".pdf,.doc,.docx,.txt"
               className="hidden"
               onChange={handleFileInput}
             />
             <Upload className="h-10 w-10 mx-auto mb-4 text-muted-foreground" />
             <p className="text-foreground font-medium mb-1">Drag & drop your resume here</p>
-            <p className="text-sm text-muted-foreground">or click to browse. Supports PDF, DOC, DOCX</p>
+            <p className="text-sm text-muted-foreground">or click to browse. Supports PDF, DOC, DOCX, TXT</p>
           </motion.div>
 
           {file && (
@@ -96,7 +170,7 @@ export default function UploadPage() {
                 {analyzing ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Analyzing Resume...
+                    {statusText || "Analyzing Resume..."}
                   </>
                 ) : (
                   <>
