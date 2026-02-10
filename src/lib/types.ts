@@ -36,6 +36,10 @@ export interface ParsedData {
   risk_flags?: string[];
   experience_items?: ExperienceItem[];
   certifications?: Certification[];
+  relevancy_score?: number;
+  matched_skills?: string[];
+  missing_skills?: string[];
+  matched_keywords?: string[];
 }
 
 export interface ExperienceItem {

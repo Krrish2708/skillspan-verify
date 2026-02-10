@@ -65,6 +65,11 @@ export default function Dashboard() {
                   <GitCompareArrows className="h-4 w-4" /> Compare
                 </Button>
               </Link>
+              <Link to="/bulk-upload">
+                <Button variant="outline" className="font-semibold gap-2">
+                  <Upload className="h-4 w-4" /> Bulk Upload
+                </Button>
+              </Link>
               <Link to="/upload">
                 <Button className="gradient-accent text-accent-foreground border-0 font-semibold hover:opacity-90 transition-opacity gap-2">
                   <Upload className="h-4 w-4" /> Upload Resume

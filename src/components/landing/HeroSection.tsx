@@ -35,9 +35,9 @@ export function HeroSection() {
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
-            <Link to="/upload">
+            <Link to="/demo">
               <Button size="lg" variant="outline" className="h-12 px-8 text-base font-semibold border-primary-foreground/20 text-primary-foreground bg-transparent hover:bg-primary-foreground/10">
-                Upload Resume
+                Continue as Guest
               </Button>
             </Link>
           </div>

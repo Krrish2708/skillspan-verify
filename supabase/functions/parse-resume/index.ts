@@ -39,13 +39,15 @@ serve(async (req) => {
 
     const userId = claimsData.claims.sub;
 
-    const { resumeId, resumeText } = await req.json();
+    const { resumeId, resumeText, jobDescription, roleTitle, experienceRange } = await req.json();
     if (!resumeId || !resumeText) {
       return new Response(JSON.stringify({ error: "Missing resumeId or resumeText" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const hasJD = !!(jobDescription || roleTitle);
 
     // Update status to parsing
     await supabase.from("resumes").update({ status: "parsing" }).eq("id", resumeId);
@@ -74,12 +76,13 @@ Your job is to extract and verify skill claims from resumes. For each skill foun
 - Categorize confidence as "verified" (strong evidence), "partially_verified" (some evidence), or "unverified" (no evidence)
 - Provide brief evidence explanation
 
-Also extract: candidate name, role/title, and generate an overall trust score.
-Be thorough but fair. Look for inconsistencies like skills claimed without project evidence.`,
+Also extract: candidate name, role/title, and generate an overall trust score (credibility_score).
+Be thorough but fair. Look for inconsistencies like skills claimed without project evidence.
+${hasJD ? `\nAdditionally, a job description has been provided. Calculate a relevancy_score (0-100) indicating how well this resume matches the job requirements. Identify matched skills, missing skills, and matched keywords.` : ""}`,
           },
           {
             role: "user",
-            content: `Analyze this resume text and extract structured verification data:\n\n${resumeText}`,
+            content: `Analyze this resume text and extract structured verification data:\n\n${resumeText}${hasJD ? `\n\n--- JOB DESCRIPTION ---\nRole: ${roleTitle || "Not specified"}\nExperience: ${experienceRange || "Not specified"}\n\n${jobDescription || ""}` : ""}`,
           },
         ],
         tools: [
@@ -93,7 +96,8 @@ Be thorough but fair. Look for inconsistencies like skills claimed without proje
                 properties: {
                   candidate_name: { type: "string", description: "Full name of the candidate" },
                   candidate_role: { type: "string", description: "Primary job title/role" },
-                  overall_score: { type: "integer", description: "Overall trust score 0-100" },
+                  overall_score: { type: "integer", description: "Overall credibility/trust score 0-100" },
+                  relevancy_score: { type: "integer", description: "How well the resume matches the job description 0-100. Only meaningful if a job description was provided." },
                   skills: {
                     type: "array",
                     items: {
@@ -119,6 +123,21 @@ Be thorough but fair. Look for inconsistencies like skills claimed without proje
                     type: "array",
                     items: { type: "string" },
                     description: "List of risk flags or inconsistencies found",
+                  },
+                  matched_skills: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "Skills from the resume that match the job description",
+                  },
+                  missing_skills: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "Skills required by the job but missing from the resume",
+                  },
+                  matched_keywords: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "Keywords from the JD found in the resume",
                   },
                   experience_items: {
                     type: "array",
@@ -148,7 +167,7 @@ Be thorough but fair. Look for inconsistencies like skills claimed without proje
                     },
                   },
                 },
-                required: ["candidate_name", "candidate_role", "overall_score", "skills", "risk_flags", "experience_items", "certifications"],
+                required: ["candidate_name", "candidate_role", "overall_score", "relevancy_score", "skills", "risk_flags", "matched_skills", "missing_skills", "matched_keywords", "experience_items", "certifications"],
                 additionalProperties: false,
               },
             },
@@ -201,6 +220,10 @@ Be thorough but fair. Look for inconsistencies like skills claimed without proje
           risk_flags: analysis.risk_flags,
           experience_items: analysis.experience_items,
           certifications: analysis.certifications,
+          relevancy_score: analysis.relevancy_score || 0,
+          matched_skills: analysis.matched_skills || [],
+          missing_skills: analysis.missing_skills || [],
+          matched_keywords: analysis.matched_keywords || [],
         },
       })
       .eq("id", resumeId);
