@@ -36,9 +36,12 @@ export function HeroSection() {
               </Button>
             </Link>
             <Link to="/demo">
-              <Button size="lg" variant="outline" className="h-12 px-8 text-base font-semibold border-primary-foreground/20 text-primary-foreground bg-transparent hover:bg-primary-foreground/10">
-                Continue as Guest
-              </Button>
+              <div className="flex flex-col items-center">
+                <Button size="lg" variant="outline" className="h-12 px-8 text-base font-semibold border-primary-foreground/30 text-primary-foreground bg-transparent hover:bg-primary-foreground/10 backdrop-blur-sm">
+                  Continue as Guest
+                </Button>
+                <span className="text-xs text-primary-foreground/50 mt-2">Explore a live demo dashboard instantly</span>
+              </div>
             </Link>
           </div>
         </motion.div>

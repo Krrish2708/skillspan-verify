@@ -1,10 +1,13 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Shield, LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 export function Navbar() {
-  const { user, signOut } = useAuth();
+  const { user, userRole, signOut } = useAuth();
+
+  const dashboardPath = userRole === "candidate" ? "/candidate" : "/dashboard";
 
   return (
     <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
@@ -18,7 +21,7 @@ export function Navbar() {
         <nav className="hidden md:flex items-center gap-8">
           <Link to="/" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Home</Link>
           <Link to="/demo" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Demo</Link>
-          {user && (
+          {user && userRole === "hr" && (
             <>
               <Link to="/dashboard" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Dashboard</Link>
               <Link to="/upload" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Upload</Link>
@@ -26,10 +29,18 @@ export function Navbar() {
               <Link to="/compare" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Compare</Link>
             </>
           )}
+          {user && userRole === "candidate" && (
+            <Link to="/candidate" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">My Dashboard</Link>
+          )}
         </nav>
         <div className="flex items-center gap-3">
           {user ? (
             <>
+              {userRole && (
+                <Badge variant="outline" className="hidden sm:flex text-xs capitalize">
+                  {userRole === "hr" ? "HR / Recruiter" : "Candidate"}
+                </Badge>
+              )}
               <span className="text-sm text-muted-foreground hidden sm:block">{user.email}</span>
               <Button
                 variant="outline"
