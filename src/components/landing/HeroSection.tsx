@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Shield, ArrowRight } from "lucide-react";
+import { Shield, ArrowRight, Brain, Target, ShieldCheck, SlidersHorizontal } from "lucide-react";
 import { motion } from "framer-motion";
 
 export function HeroSection() {
@@ -46,22 +46,23 @@ export function HeroSection() {
           </div>
         </motion.div>
 
-        {/* Stats bar */}
+        {/* Technical Capabilities */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4, duration: 0.6 }}
-          className="mt-20 grid grid-cols-2 md:grid-cols-4 gap-6 max-w-3xl mx-auto"
+          className="mt-20 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto"
         >
           {[
-            { value: "50K+", label: "Resumes Verified" },
-            { value: "98%", label: "Accuracy Rate" },
-            { value: "2.5s", label: "Avg. Analysis Time" },
-            { value: "500+", label: "Companies Trust Us" },
-          ].map((stat) => (
-            <div key={stat.label} className="text-center">
-              <div className="text-2xl md:text-3xl font-display font-bold text-primary-foreground">{stat.value}</div>
-              <div className="text-sm text-primary-foreground/50 mt-1">{stat.label}</div>
+            { icon: Brain, title: "AI Resume Scoring Engine", desc: "Evaluates resumes across structured skill, experience, and evidence dimensions." },
+            { icon: Target, title: "JD Relevance Modeling", desc: "Computes semantic similarity between resume content and job requirements." },
+            { icon: ShieldCheck, title: "Credibility & Evidence Validation", desc: "Analyzes external proof such as certifications, repositories, and project links." },
+            { icon: SlidersHorizontal, title: "Weighted Scoring Framework", desc: "Allows dynamic adjustment of relevance vs credibility weights (e.g., 60/40, 50/50)." },
+          ].map((item) => (
+            <div key={item.title} className="text-left p-4 rounded-lg border border-primary-foreground/10 bg-primary-foreground/5 backdrop-blur-sm">
+              <item.icon className="h-5 w-5 text-accent mb-3" />
+              <div className="text-sm font-semibold text-primary-foreground mb-1.5">{item.title}</div>
+              <div className="text-xs text-primary-foreground/50 leading-relaxed">{item.desc}</div>
             </div>
           ))}
         </motion.div>
