@@ -6,16 +6,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { motion } from "framer-motion";
-import { Shield, Loader2, Mail } from "lucide-react";
+import { Shield, Loader2, Mail, Users, UserCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
+
+type RoleOption = "hr" | "candidate";
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [role, setRole] = useState<RoleOption>("hr");
   const [submitting, setSubmitting] = useState(false);
   const [confirmationSent, setConfirmationSent] = useState(false);
   const navigate = useNavigate();
@@ -30,10 +33,17 @@ export default function AuthPage() {
       if (error) {
         toast({ title: "Login failed", description: error.message, variant: "destructive" });
       } else {
-        navigate("/dashboard");
+        // Fetch role after login to determine redirect
+        const { data: { user: authUser } } = await (await import("@/integrations/supabase/client")).supabase.auth.getUser();
+        if (authUser) {
+          const { data: fetchedRole } = await (await import("@/integrations/supabase/client")).supabase.rpc("get_user_role", { _user_id: authUser.id });
+          navigate(fetchedRole === "candidate" ? "/candidate" : "/dashboard");
+        } else {
+          navigate("/dashboard");
+        }
       }
     } else {
-      const { error } = await signUp(email, password, fullName);
+      const { error } = await signUp(email, password, fullName, role);
       if (error) {
         toast({ title: "Signup failed", description: error.message, variant: "destructive" });
       } else {
@@ -89,16 +99,47 @@ export default function AuthPage() {
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 {!isLogin && (
-                  <div className="space-y-2">
-                    <Label htmlFor="fullName">Full Name</Label>
-                    <Input
-                      id="fullName"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      placeholder="John Doe"
-                      required={!isLogin}
-                    />
-                  </div>
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="fullName">Full Name</Label>
+                      <Input
+                        id="fullName"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        placeholder="John Doe"
+                        required={!isLogin}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Register as</Label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setRole("hr")}
+                          className={`flex items-center gap-2 p-3 rounded-lg border-2 text-left text-sm font-medium transition-all ${
+                            role === "hr"
+                              ? "border-accent bg-accent/5 text-foreground"
+                              : "border-border bg-card text-muted-foreground hover:border-accent/40"
+                          }`}
+                        >
+                          <Users className="h-4 w-4 shrink-0" />
+                          HR / Recruiter
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setRole("candidate")}
+                          className={`flex items-center gap-2 p-3 rounded-lg border-2 text-left text-sm font-medium transition-all ${
+                            role === "candidate"
+                              ? "border-accent bg-accent/5 text-foreground"
+                              : "border-border bg-card text-muted-foreground hover:border-accent/40"
+                          }`}
+                        >
+                          <UserCheck className="h-4 w-4 shrink-0" />
+                          Candidate
+                        </button>
+                      </div>
+                    </div>
+                  </>
                 )}
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
