@@ -2,8 +2,11 @@ import { useState, useCallback } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
-import { Upload, FileText, X, ArrowRight, Loader2 } from "lucide-react";
-import { motion } from "framer-motion";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Upload, FileText, X, ArrowRight, Loader2, ChevronDown, ChevronUp } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +17,10 @@ export default function UploadPage() {
   const [dragActive, setDragActive] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [statusText, setStatusText] = useState("");
+  const [showJD, setShowJD] = useState(false);
+  const [jobDescription, setJobDescription] = useState("");
+  const [roleTitle, setRoleTitle] = useState("");
+  const [experienceRange, setExperienceRange] = useState("");
   const navigate = useNavigate();
   const { user, profileId } = useAuth();
 
@@ -34,10 +41,6 @@ export default function UploadPage() {
     if (e.target.files?.[0]) setFile(e.target.files[0]);
   };
 
-  const extractTextFromFile = async (file: File): Promise<string> => {
-    return await file.text();
-  };
-
   const handleAnalyze = async () => {
     if (!file || !user || !profileId) {
       if (!user) {
@@ -51,7 +54,6 @@ export default function UploadPage() {
     setStatusText("Uploading file...");
 
     try {
-      // Upload file to storage
       const filePath = `${user.id}/${Date.now()}-${file.name}`;
       const { error: uploadError } = await supabase.storage
         .from("resume-files")
@@ -61,7 +63,6 @@ export default function UploadPage() {
 
       setStatusText("Creating record...");
 
-      // Create resume record
       const { data: resume, error: insertError } = await supabase
         .from("resumes")
         .insert({
@@ -76,24 +77,20 @@ export default function UploadPage() {
       if (insertError) throw new Error(`Record creation failed: ${insertError.message}`);
 
       setStatusText("Extracting text...");
-
-      // Extract text from file
-      const resumeText = await extractTextFromFile(file);
+      const resumeText = await file.text();
 
       setStatusText("AI is analyzing your resume...");
 
-      // Call AI parse function
       const { data: fnData, error: fnError } = await supabase.functions.invoke("parse-resume", {
-        body: { resumeId: resume.id, resumeText },
+        body: {
+          resumeId: resume.id,
+          resumeText,
+          ...(showJD && jobDescription ? { jobDescription, roleTitle, experienceRange } : {}),
+        },
       });
 
-      if (fnError) {
-        throw new Error(fnError.message || "Analysis failed");
-      }
-
-      if (fnData?.error) {
-        throw new Error(fnData.error);
-      }
+      if (fnError) throw new Error(fnError.message || "Analysis failed");
+      if (fnData?.error) throw new Error(fnData.error);
 
       toast({ title: "Analysis complete!", description: "Your resume has been verified." });
       navigate(`/reports/${resume.id}`);
@@ -149,7 +146,7 @@ export default function UploadPage() {
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
-              className="mt-6"
+              className="mt-6 space-y-4"
             >
               <div className="flex items-center gap-3 p-4 rounded-lg bg-card border border-border shadow-card">
                 <FileText className="h-8 w-8 text-accent flex-shrink-0" />
@@ -162,10 +159,62 @@ export default function UploadPage() {
                 </button>
               </div>
 
+              {/* Optional JD Section */}
+              <button
+                type="button"
+                onClick={() => setShowJD(!showJD)}
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full"
+              >
+                {showJD ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                <span>Add Job Description for relevance matching (optional)</span>
+              </button>
+
+              <AnimatePresence>
+                {showJD && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="space-y-3 p-4 rounded-lg bg-card border border-border"
+                  >
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="role-title" className="text-xs">Role Title</Label>
+                        <Input
+                          id="role-title"
+                          placeholder="e.g. Senior Backend Engineer"
+                          value={roleTitle}
+                          onChange={(e) => setRoleTitle(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="exp-range" className="text-xs">Experience Range</Label>
+                        <Input
+                          id="exp-range"
+                          placeholder="e.g. 3-5 years"
+                          value={experienceRange}
+                          onChange={(e) => setExperienceRange(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="jd-text" className="text-xs">Job Description</Label>
+                      <Textarea
+                        id="jd-text"
+                        placeholder="Paste the full job description here..."
+                        value={jobDescription}
+                        onChange={(e) => setJobDescription(e.target.value)}
+                        rows={5}
+                      />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               <Button
                 onClick={handleAnalyze}
                 disabled={analyzing}
-                className="w-full mt-4 h-12 gradient-accent text-accent-foreground border-0 font-semibold text-base hover:opacity-90 transition-opacity"
+                className="w-full h-12 gradient-accent text-accent-foreground border-0 font-semibold text-base hover:opacity-90 transition-opacity"
               >
                 {analyzing ? (
                   <>

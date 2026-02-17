@@ -16,6 +16,12 @@ export interface Resume {
   candidate_name: string | null;
   candidate_role: string | null;
   overall_score: number;
+  ats_score: number;
+  relevancy_score: number;
+  credibility_score: number;
+  job_description: string | null;
+  role_title: string | null;
+  experience_range: string | null;
   parsed_data: ParsedData;
   created_at: string;
   updated_at: string;
@@ -40,6 +46,43 @@ export interface ParsedData {
   matched_skills?: string[];
   missing_skills?: string[];
   matched_keywords?: string[];
+  ats_breakdown?: ATSBreakdown;
+  credibility_breakdown?: CredibilityBreakdown;
+  education?: EducationItem[];
+  links?: ResumeLink[];
+  improvement_suggestions?: string[];
+  timeline_consistency?: "consistent" | "minor_gaps" | "inconsistent";
+  strength_summary?: string;
+  missing_evidence?: string[];
+}
+
+export interface ATSBreakdown {
+  formatting_score: number;
+  keyword_score: number;
+  structure_score: number;
+  contact_info_present: boolean;
+  sections_detected: string[];
+  missing_sections: string[];
+}
+
+export interface CredibilityBreakdown {
+  evidence_score: number;
+  github_linked: boolean;
+  certifications_verified: number;
+  certifications_unverified: number;
+  projects_with_links: number;
+  projects_without_links: number;
+}
+
+export interface EducationItem {
+  institution: string;
+  degree: string;
+  year: string;
+}
+
+export interface ResumeLink {
+  type: string;
+  url: string;
 }
 
 export interface ExperienceItem {

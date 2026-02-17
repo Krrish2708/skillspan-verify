@@ -17,6 +17,12 @@ import {
   Award,
   ArrowLeft,
   Loader2,
+  FileSearch,
+  ShieldCheck,
+  GraduationCap,
+  Link as LinkIcon,
+  Target,
+  Lightbulb,
 } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -69,17 +75,8 @@ export default function ReportPage() {
         <main className="flex-1 py-10">
           <div className="container max-w-5xl mx-auto px-4">
             <Skeleton className="h-8 w-48 mb-6" />
-            <div className="flex items-center gap-6 mb-8">
-              <Skeleton className="h-20 w-20 rounded-full" />
-              <div className="space-y-2">
-                <Skeleton className="h-6 w-48" />
-                <Skeleton className="h-4 w-32" />
-              </div>
-            </div>
             <div className="grid lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
-                <Skeleton className="h-64 w-full rounded-xl" />
-              </div>
+              <div className="lg:col-span-2"><Skeleton className="h-64 w-full rounded-xl" /></div>
               <Skeleton className="h-48 w-full rounded-xl" />
             </div>
           </div>
@@ -97,9 +94,7 @@ export default function ReportPage() {
           <div className="container max-w-5xl mx-auto px-4 text-center">
             <h1 className="text-2xl font-display font-bold text-foreground mb-4">Report not found</h1>
             <p className="text-muted-foreground mb-6">This resume report doesn't exist or you don't have access.</p>
-            <Link to="/dashboard">
-              <Button variant="outline">Back to Dashboard</Button>
-            </Link>
+            <Link to="/dashboard"><Button variant="outline">Back to Dashboard</Button></Link>
           </div>
         </main>
         <Footer />
@@ -124,7 +119,9 @@ export default function ReportPage() {
   }
 
   const parsedData = (resume.parsed_data || {}) as ParsedData;
-  const overallLevel = getScoreLevel(resume.overall_score);
+  const atsBreakdown = parsedData.ats_breakdown;
+  const credBreakdown = parsedData.credibility_breakdown;
+  const hasJD = !!resume.job_description;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -148,9 +145,51 @@ export default function ReportPage() {
             </Button>
           </motion.div>
 
+          {/* Score Cards Row */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <ScoreCard label="Overall" score={resume.overall_score} />
+            <ScoreCard label="ATS Score" score={resume.ats_score} />
+            <ScoreCard label="Credibility" score={resume.credibility_score} />
+            <ScoreCard label="Relevancy" score={hasJD ? resume.relevancy_score : 0} subtitle={!hasJD ? "No JD provided" : undefined} />
+          </div>
+
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Left column */}
             <div className="lg:col-span-2 space-y-6">
+              {/* ATS Breakdown */}
+              {atsBreakdown && (
+                <Card className="shadow-card">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="flex items-center gap-2 text-lg font-display">
+                      <FileSearch className="h-5 w-5 text-accent" /> ATS Breakdown
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <ScoreBar score={atsBreakdown.formatting_score} label="Formatting" />
+                    <ScoreBar score={atsBreakdown.keyword_score} label="Keywords" />
+                    <ScoreBar score={atsBreakdown.structure_score} label="Structure" />
+                    <Separator className="my-3" />
+                    <div className="flex items-center gap-2 text-sm">
+                      {atsBreakdown.contact_info_present ? (
+                        <><CheckCircle2 className="h-4 w-4 score-high" /><span className="text-foreground">Contact info detected</span></>
+                      ) : (
+                        <><XCircle className="h-4 w-4 score-low" /><span className="text-foreground">Contact info missing</span></>
+                      )}
+                    </div>
+                    {atsBreakdown.missing_sections?.length > 0 && (
+                      <div className="mt-2">
+                        <p className="text-xs text-muted-foreground mb-1">Missing sections:</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {atsBreakdown.missing_sections.map((s, i) => (
+                            <Badge key={i} variant="outline" className="text-xs">{s}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Skills */}
               <Card className="shadow-card">
                 <CardHeader className="pb-4">
@@ -159,22 +198,14 @@ export default function ReportPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {skills.length === 0 && (
-                    <p className="text-sm text-muted-foreground">No skills extracted yet.</p>
-                  )}
+                  {skills.length === 0 && <p className="text-sm text-muted-foreground">No skills extracted yet.</p>}
                   {skills.map((skill, i) => {
                     const config = confidenceConfig[skill.confidence] || confidenceConfig.unverified;
                     return (
-                      <motion.div
-                        key={skill.id}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: i * 0.05 }}
-                      >
+                      <motion.div key={skill.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}>
                         <div className="flex items-center gap-3 mb-1">
                           <Badge variant="secondary" className="text-xs">
-                            <config.icon className="h-3 w-3 mr-1" />
-                            {config.label}
+                            <config.icon className="h-3 w-3 mr-1" />{config.label}
                           </Badge>
                           <span className="text-xs text-muted-foreground">{skill.evidence}</span>
                         </div>
@@ -184,6 +215,40 @@ export default function ReportPage() {
                   })}
                 </CardContent>
               </Card>
+
+              {/* JD Relevancy */}
+              {hasJD && (parsedData.matched_skills?.length || parsedData.missing_skills?.length) ? (
+                <Card className="shadow-card">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="flex items-center gap-2 text-lg font-display">
+                      <Target className="h-5 w-5 text-accent" /> JD Relevance
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <ScoreBar score={resume.relevancy_score} label="Relevance Score" />
+                    {parsedData.matched_skills && parsedData.matched_skills.length > 0 && (
+                      <div>
+                        <p className="text-xs font-medium text-foreground mb-2">Matched Skills</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {parsedData.matched_skills.map((s, i) => (
+                            <Badge key={i} className="bg-score-high/10 text-score-high border-score-high/20 text-xs">{s}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {parsedData.missing_skills && parsedData.missing_skills.length > 0 && (
+                      <div>
+                        <p className="text-xs font-medium text-foreground mb-2">Missing Skills</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {parsedData.missing_skills.map((s, i) => (
+                            <Badge key={i} variant="outline" className="text-xs border-score-low/30 text-score-low">{s}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ) : null}
 
               {/* Experience */}
               {parsedData.experience_items && parsedData.experience_items.length > 0 && (
@@ -200,11 +265,7 @@ export default function ReportPage() {
                           <p className="font-medium text-foreground text-sm">{item.role}</p>
                           <p className="text-xs text-muted-foreground">{item.company} · {item.duration}</p>
                         </div>
-                        {item.verified ? (
-                          <CheckCircle2 className="h-4 w-4 score-high" />
-                        ) : (
-                          <AlertTriangle className="h-4 w-4 score-medium" />
-                        )}
+                        {item.verified ? <CheckCircle2 className="h-4 w-4 score-high" /> : <AlertTriangle className="h-4 w-4 score-medium" />}
                       </div>
                     ))}
                   </CardContent>
@@ -214,6 +275,35 @@ export default function ReportPage() {
 
             {/* Right column */}
             <div className="space-y-6">
+              {/* Credibility Breakdown */}
+              {credBreakdown && (
+                <Card className="shadow-card">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-lg font-display">
+                      <ShieldCheck className="h-5 w-5 text-accent" /> Credibility
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <ScoreBar score={resume.credibility_score} label="Evidence Score" />
+                    <Separator />
+                    <div className="text-sm space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">GitHub Linked</span>
+                        <span className="font-medium">{credBreakdown.github_linked ? "Yes" : "No"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Certs Verified</span>
+                        <span className="font-medium text-foreground">{credBreakdown.certifications_verified}/{credBreakdown.certifications_verified + credBreakdown.certifications_unverified}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Projects w/ Links</span>
+                        <span className="font-medium text-foreground">{credBreakdown.projects_with_links}/{credBreakdown.projects_with_links + credBreakdown.projects_without_links}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Trust Summary */}
               <Card className="shadow-card">
                 <CardHeader className="pb-3">
@@ -225,19 +315,34 @@ export default function ReportPage() {
                   <div className="text-sm space-y-2">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Verified Skills</span>
-                      <span className="font-medium text-foreground">
-                        {skills.filter(s => s.confidence === "verified").length}/{skills.length}
-                      </span>
+                      <span className="font-medium text-foreground">{skills.filter(s => s.confidence === "verified").length}/{skills.length}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">At Risk</span>
-                      <span className="font-medium score-low">
-                        {skills.filter(s => s.confidence === "unverified").length}
-                      </span>
+                      <span className="font-medium score-low">{skills.filter(s => s.confidence === "unverified").length}</span>
                     </div>
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Education */}
+              {parsedData.education && parsedData.education.length > 0 && (
+                <Card className="shadow-card">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-lg font-display">
+                      <GraduationCap className="h-5 w-5 text-accent" /> Education
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {parsedData.education.map((edu, idx) => (
+                      <div key={idx}>
+                        <p className="text-sm font-medium text-foreground">{edu.degree}</p>
+                        <p className="text-xs text-muted-foreground">{edu.institution} · {edu.year}</p>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Certifications */}
               {parsedData.certifications && parsedData.certifications.length > 0 && (
@@ -250,15 +355,30 @@ export default function ReportPage() {
                   <CardContent className="space-y-3">
                     {parsedData.certifications.map((cert, idx) => (
                       <div key={idx} className="flex items-start gap-2">
-                        {cert.verified ? (
-                          <CheckCircle2 className="h-4 w-4 mt-0.5 score-high flex-shrink-0" />
-                        ) : (
-                          <XCircle className="h-4 w-4 mt-0.5 score-low flex-shrink-0" />
-                        )}
+                        {cert.verified ? <CheckCircle2 className="h-4 w-4 mt-0.5 score-high flex-shrink-0" /> : <XCircle className="h-4 w-4 mt-0.5 score-low flex-shrink-0" />}
                         <div>
                           <p className="text-sm font-medium text-foreground">{cert.name}</p>
                           <p className="text-xs text-muted-foreground">{cert.issuer}</p>
                         </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Links */}
+              {parsedData.links && parsedData.links.length > 0 && (
+                <Card className="shadow-card">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-lg font-display">
+                      <LinkIcon className="h-5 w-5 text-accent" /> Links
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {parsedData.links.map((link, idx) => (
+                      <div key={idx} className="flex items-center gap-2 text-sm">
+                        <Badge variant="secondary" className="text-xs">{link.type}</Badge>
+                        <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline truncate">{link.url}</a>
                       </div>
                     ))}
                   </CardContent>
@@ -285,11 +405,48 @@ export default function ReportPage() {
                   </CardContent>
                 </Card>
               )}
+
+              {/* Improvement Suggestions */}
+              {parsedData.improvement_suggestions && parsedData.improvement_suggestions.length > 0 && (
+                <Card className="shadow-card">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-lg font-display">
+                      <Lightbulb className="h-5 w-5 text-accent" /> Suggestions
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-2">
+                      {parsedData.improvement_suggestions.map((s, i) => (
+                        <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-accent" />{s}
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
         </div>
       </main>
       <Footer />
     </div>
+  );
+}
+
+function ScoreCard({ label, score, subtitle }: { label: string; score: number; subtitle?: string }) {
+  const level = getScoreLevel(score);
+  const colorClass = level === "high" ? "text-[hsl(var(--score-high))]" : level === "medium" ? "text-[hsl(var(--score-medium))]" : "text-[hsl(var(--score-low))]";
+
+  return (
+    <Card className="shadow-card">
+      <CardContent className="py-4 text-center">
+        <p className="text-xs text-muted-foreground mb-1">{label}</p>
+        <p className={`text-2xl font-display font-bold ${subtitle ? "text-muted-foreground" : colorClass}`}>
+          {subtitle ? "—" : score}
+        </p>
+        {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
+      </CardContent>
+    </Card>
   );
 }
