@@ -84,41 +84,59 @@ export type Database = {
       }
       resumes: {
         Row: {
+          ats_score: number | null
           candidate_name: string | null
           candidate_role: string | null
           created_at: string
+          credibility_score: number | null
+          experience_range: string | null
           file_name: string
           file_url: string | null
           id: string
+          job_description: string | null
           overall_score: number | null
           parsed_data: Json | null
           profile_id: string
+          relevancy_score: number | null
+          role_title: string | null
           status: string
           updated_at: string
         }
         Insert: {
+          ats_score?: number | null
           candidate_name?: string | null
           candidate_role?: string | null
           created_at?: string
+          credibility_score?: number | null
+          experience_range?: string | null
           file_name: string
           file_url?: string | null
           id?: string
+          job_description?: string | null
           overall_score?: number | null
           parsed_data?: Json | null
           profile_id: string
+          relevancy_score?: number | null
+          role_title?: string | null
           status?: string
           updated_at?: string
         }
         Update: {
+          ats_score?: number | null
           candidate_name?: string | null
           candidate_role?: string | null
           created_at?: string
+          credibility_score?: number | null
+          experience_range?: string | null
           file_name?: string
           file_url?: string | null
           id?: string
+          job_description?: string | null
           overall_score?: number | null
           parsed_data?: Json | null
           profile_id?: string
+          relevancy_score?: number | null
+          role_title?: string | null
           status?: string
           updated_at?: string
         }
