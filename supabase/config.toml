@@ -2,3 +2,9 @@ project_id = "knqhiyhrutbdukefnojl"
 
 [functions.parse-resume]
 verify_jwt = false
+
+[functions.clerk-config]
+verify_jwt = false
+
+[functions.clerk-auth-proxy]
+verify_jwt = false

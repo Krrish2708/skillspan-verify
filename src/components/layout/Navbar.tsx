@@ -7,8 +7,6 @@ import { useAuth } from "@/hooks/useAuth";
 export function Navbar() {
   const { user, userRole, signOut } = useAuth();
 
-  const dashboardPath = userRole === "candidate" ? "/candidate" : "/dashboard";
-
   return (
     <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
       <div className="container max-w-6xl mx-auto px-4 flex items-center justify-between h-16">

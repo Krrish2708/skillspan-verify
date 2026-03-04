@@ -7,24 +7,12 @@ import { Badge } from "@/components/ui/badge";
 import { ScoreBar } from "@/components/ScoreDisplay";
 import { Separator } from "@/components/ui/separator";
 import {
-  Upload,
-  FileText,
-  X,
-  ArrowRight,
-  Loader2,
-  ShieldCheck,
-  AlertTriangle,
-  Lightbulb,
-  Clock,
-  CheckCircle2,
-  FileSearch,
-  Award,
-  XCircle,
-  GraduationCap,
+  Upload, FileText, X, ArrowRight, Loader2, ShieldCheck, AlertTriangle,
+  Lightbulb, Clock, CheckCircle2, FileSearch, Award, XCircle, GraduationCap,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { authProxy, uploadFile, invokeEdgeFunction } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import type { ParsedData, ResumeSkill } from "@/lib/types";
 
@@ -40,7 +28,7 @@ export default function CandidateDashboard() {
     parsed_data: ParsedData;
     skills: ResumeSkill[];
   } | null>(null);
-  const { user, profileId } = useAuth();
+  const { user, profileId, getToken } = useAuth();
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -65,48 +53,38 @@ export default function CandidateDashboard() {
     setStatusText("Uploading file...");
 
     try {
+      const token = await getToken();
+      if (!token) throw new Error("Not authenticated");
+
       const filePath = `${user.id}/${Date.now()}-${file.name}`;
-      await supabase.storage.from("resume-files").upload(filePath, file);
+      await uploadFile("resume-files", filePath, file, token);
 
       setStatusText("Creating record...");
-      const { data: resume, error: insertError } = await supabase
-        .from("resumes")
-        .insert({
-          profile_id: profileId,
-          file_name: file.name,
-          file_url: filePath,
-          status: "pending",
-        })
-        .select("id")
-        .single();
-
-      if (insertError) throw insertError;
+      const { resumeId } = await authProxy("create-resume", {
+        fileName: file.name,
+        fileUrl: filePath,
+      }, token);
 
       setStatusText("Extracting text...");
       const resumeText = await file.text();
 
       setStatusText("AI is analyzing your resume...");
-      const { data: fnData, error: fnError } = await supabase.functions.invoke("parse-resume", {
-        body: { resumeId: resume.id, resumeText },
-      });
+      const fnData = await invokeEdgeFunction("parse-resume", {
+        resumeId,
+        resumeText,
+      }, token);
 
-      if (fnError) throw new Error(fnError.message || "Analysis failed");
       if (fnData?.error) throw new Error(fnData.error);
 
       // Fetch the completed resume and skills
-      const [resumeRes, skillsRes] = await Promise.all([
-        supabase.from("resumes").select("*").eq("id", resume.id).single(),
-        supabase.from("resume_skills").select("*").eq("resume_id", resume.id).order("score", { ascending: false }),
-      ]);
-
-      if (resumeRes.error) throw resumeRes.error;
+      const resumeData = await authProxy("get-resume-with-skills", { resumeId }, token);
 
       setResult({
-        overall_score: resumeRes.data.overall_score || 0,
-        ats_score: resumeRes.data.ats_score || 0,
-        credibility_score: resumeRes.data.credibility_score || 0,
-        parsed_data: (resumeRes.data.parsed_data || {}) as ParsedData,
-        skills: (skillsRes.data || []) as ResumeSkill[],
+        overall_score: resumeData.resume.overall_score || 0,
+        ats_score: resumeData.resume.ats_score || 0,
+        credibility_score: resumeData.resume.credibility_score || 0,
+        parsed_data: (resumeData.resume.parsed_data || {}) as ParsedData,
+        skills: (resumeData.skills || []) as ResumeSkill[],
       });
 
       toast({ title: "Analysis complete!", description: "Your resume health check is ready." });
@@ -135,33 +113,17 @@ export default function CandidateDashboard() {
         <div className="container max-w-2xl mx-auto px-4">
           <div className="text-center mb-10">
             <h1 className="text-3xl font-display font-bold text-foreground mb-2">Resume Health Check</h1>
-            <p className="text-muted-foreground">
-              Upload your resume to get a credibility analysis with actionable improvement suggestions.
-            </p>
+            <p className="text-muted-foreground">Upload your resume to get a credibility analysis with actionable improvement suggestions.</p>
           </div>
 
           {!result ? (
             <>
               <motion.div
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={`
-                  relative border-2 border-dashed rounded-xl p-12 text-center transition-all duration-200 cursor-pointer
-                  ${dragActive ? "border-accent bg-accent/5" : "border-border hover:border-accent/50 bg-card"}
-                `}
-                onDragEnter={handleDrag}
-                onDragOver={handleDrag}
-                onDragLeave={handleDrag}
-                onDrop={handleDrop}
-                onClick={() => document.getElementById("candidate-file-input")?.click()}
-              >
-                <input
-                  id="candidate-file-input"
-                  type="file"
-                  accept=".pdf,.doc,.docx,.txt"
-                  className="hidden"
-                  onChange={handleFileInput}
-                />
+                initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+                className={`relative border-2 border-dashed rounded-xl p-12 text-center transition-all duration-200 cursor-pointer ${dragActive ? "border-accent bg-accent/5" : "border-border hover:border-accent/50 bg-card"}`}
+                onDragEnter={handleDrag} onDragOver={handleDrag} onDragLeave={handleDrag} onDrop={handleDrop}
+                onClick={() => document.getElementById("candidate-file-input")?.click()}>
+                <input id="candidate-file-input" type="file" accept=".pdf,.doc,.docx,.txt" className="hidden" onChange={handleFileInput} />
                 <Upload className="h-10 w-10 mx-auto mb-4 text-muted-foreground" />
                 <p className="text-foreground font-medium mb-1">Drag & drop your resume here</p>
                 <p className="text-sm text-muted-foreground">Supports PDF, DOC, DOCX, TXT</p>
@@ -175,26 +137,11 @@ export default function CandidateDashboard() {
                       <p className="text-sm font-medium text-foreground truncate">{file.name}</p>
                       <p className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</p>
                     </div>
-                    <button onClick={() => setFile(null)} className="text-muted-foreground hover:text-foreground">
-                      <X className="h-4 w-4" />
-                    </button>
+                    <button onClick={() => setFile(null)} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
                   </div>
-                  <Button
-                    onClick={handleAnalyze}
-                    disabled={analyzing}
-                    className="w-full mt-4 h-12 gradient-accent text-accent-foreground border-0 font-semibold text-base hover:opacity-90 transition-opacity"
-                  >
-                    {analyzing ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        {statusText || "Analyzing your resume…"}
-                      </>
-                    ) : (
-                      <>
-                        Check My Resume
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </>
-                    )}
+                  <Button onClick={handleAnalyze} disabled={analyzing}
+                    className="w-full mt-4 h-12 gradient-accent text-accent-foreground border-0 font-semibold text-base hover:opacity-90 transition-opacity">
+                    {analyzing ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />{statusText || "Analyzing your resume…"}</>) : (<>Check My Resume<ArrowRight className="ml-2 h-4 w-4" /></>)}
                   </Button>
                 </motion.div>
               )}
@@ -211,9 +158,7 @@ export default function CandidateDashboard() {
                   <Card key={item.label} className="shadow-card">
                     <CardContent className="py-4 text-center">
                       <p className="text-xs text-muted-foreground mb-1">{item.label}</p>
-                      <p className="text-3xl font-display font-bold" style={{ color: scoreColor(item.score) }}>
-                        {item.score}
-                      </p>
+                      <p className="text-3xl font-display font-bold" style={{ color: scoreColor(item.score) }}>{item.score}</p>
                     </CardContent>
                   </Card>
                 ))}
@@ -222,25 +167,15 @@ export default function CandidateDashboard() {
               {/* Strength Summary */}
               {result.parsed_data.strength_summary && (
                 <Card className="shadow-card">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                      <ShieldCheck className="h-5 w-5 text-accent" /> Strength Summary
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{result.parsed_data.strength_summary}</p>
-                  </CardContent>
+                  <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-lg"><ShieldCheck className="h-5 w-5 text-accent" /> Strength Summary</CardTitle></CardHeader>
+                  <CardContent><p className="text-sm text-muted-foreground leading-relaxed">{result.parsed_data.strength_summary}</p></CardContent>
                 </Card>
               )}
 
               {/* ATS Breakdown */}
               {result.parsed_data.ats_breakdown && (
                 <Card className="shadow-card">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                      <FileSearch className="h-5 w-5 text-accent" /> ATS Breakdown
-                    </CardTitle>
-                  </CardHeader>
+                  <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-lg"><FileSearch className="h-5 w-5 text-accent" /> ATS Breakdown</CardTitle></CardHeader>
                   <CardContent className="space-y-3">
                     <ScoreBar score={result.parsed_data.ats_breakdown.formatting_score} label="Formatting" />
                     <ScoreBar score={result.parsed_data.ats_breakdown.keyword_score} label="Keywords" />
@@ -248,11 +183,7 @@ export default function CandidateDashboard() {
                     {result.parsed_data.ats_breakdown.missing_sections?.length > 0 && (
                       <div className="mt-2">
                         <p className="text-xs text-muted-foreground mb-1">Missing sections:</p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {result.parsed_data.ats_breakdown.missing_sections.map((s, i) => (
-                            <Badge key={i} variant="outline" className="text-xs">{s}</Badge>
-                          ))}
-                        </div>
+                        <div className="flex flex-wrap gap-1.5">{result.parsed_data.ats_breakdown.missing_sections.map((s, i) => (<Badge key={i} variant="outline" className="text-xs">{s}</Badge>))}</div>
                       </div>
                     )}
                   </CardContent>
@@ -262,18 +193,12 @@ export default function CandidateDashboard() {
               {/* Top Skills */}
               {result.skills.length > 0 && (
                 <Card className="shadow-card">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                      <CheckCircle2 className="h-5 w-5 text-accent" /> Skill Confidence
-                    </CardTitle>
-                  </CardHeader>
+                  <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-lg"><CheckCircle2 className="h-5 w-5 text-accent" /> Skill Confidence</CardTitle></CardHeader>
                   <CardContent className="space-y-3">
                     {result.skills.slice(0, 8).map((skill) => (
                       <div key={skill.id}>
                         <div className="flex items-center gap-2 mb-1">
-                          <Badge variant="secondary" className="text-xs">
-                            {skill.confidence === "verified" ? "✓" : skill.confidence === "partially_verified" ? "~" : "✗"} {skill.confidence.replace("_", " ")}
-                          </Badge>
+                          <Badge variant="secondary" className="text-xs">{skill.confidence === "verified" ? "✓" : skill.confidence === "partially_verified" ? "~" : "✗"} {skill.confidence.replace("_", " ")}</Badge>
                           <span className="text-xs text-muted-foreground">{skill.evidence}</span>
                         </div>
                         <ScoreBar score={skill.score} label={skill.skill_name} />
@@ -290,15 +215,7 @@ export default function CandidateDashboard() {
                     {(() => {
                       const t = timelineLabel[result.parsed_data.timeline_consistency!];
                       const Icon = t.icon;
-                      return (
-                        <>
-                          <Icon className={`h-5 w-5 ${t.color}`} />
-                          <div>
-                            <p className="text-sm font-medium text-foreground">Timeline Consistency</p>
-                            <p className={`text-sm font-semibold ${t.color}`}>{t.text}</p>
-                          </div>
-                        </>
-                      );
+                      return (<><Icon className={`h-5 w-5 ${t.color}`} /><div><p className="text-sm font-medium text-foreground">Timeline Consistency</p><p className={`text-sm font-semibold ${t.color}`}>{t.text}</p></div></>);
                     })()}
                   </CardContent>
                 </Card>
@@ -307,22 +224,13 @@ export default function CandidateDashboard() {
               {/* Missing Evidence */}
               {result.parsed_data.missing_evidence && result.parsed_data.missing_evidence.length > 0 && (
                 <Card className="shadow-card">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                      <AlertTriangle className="h-5 w-5 text-[hsl(var(--score-medium))]" /> Missing Evidence
-                    </CardTitle>
-                  </CardHeader>
+                  <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-lg"><AlertTriangle className="h-5 w-5 text-[hsl(var(--score-medium))]" /> Missing Evidence</CardTitle></CardHeader>
                   <CardContent>
-                    <ul className="space-y-3">
-                      {result.parsed_data.missing_evidence.map((item, i) => (
-                        <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                          <Badge variant="outline" className="mt-0.5 shrink-0 text-xs border-[hsl(var(--score-medium))]/30 text-[hsl(var(--score-medium))]">
-                            Warning
-                          </Badge>
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
+                    <ul className="space-y-3">{result.parsed_data.missing_evidence.map((item, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                        <Badge variant="outline" className="mt-0.5 shrink-0 text-xs border-[hsl(var(--score-medium))]/30 text-[hsl(var(--score-medium))]">Warning</Badge>{item}
+                      </li>
+                    ))}</ul>
                   </CardContent>
                 </Card>
               )}
@@ -330,33 +238,16 @@ export default function CandidateDashboard() {
               {/* Suggestions */}
               {result.parsed_data.improvement_suggestions && result.parsed_data.improvement_suggestions.length > 0 && (
                 <Card className="shadow-card">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                      <Lightbulb className="h-5 w-5 text-accent" /> Improvement Suggestions
-                    </CardTitle>
-                  </CardHeader>
+                  <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-lg"><Lightbulb className="h-5 w-5 text-accent" /> Improvement Suggestions</CardTitle></CardHeader>
                   <CardContent>
-                    <ul className="space-y-3">
-                      {result.parsed_data.improvement_suggestions.map((s, i) => (
-                        <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                          <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-accent" />{s}
-                        </li>
-                      ))}
-                    </ul>
+                    <ul className="space-y-3">{result.parsed_data.improvement_suggestions.map((s, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground"><CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-accent" />{s}</li>
+                    ))}</ul>
                   </CardContent>
                 </Card>
               )}
 
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => {
-                  setResult(null);
-                  setFile(null);
-                }}
-              >
-                Upload Another Resume
-              </Button>
+              <Button variant="outline" className="w-full" onClick={() => { setResult(null); setFile(null); }}>Upload Another Resume</Button>
             </motion.div>
           )}
         </div>

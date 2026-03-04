@@ -9,7 +9,7 @@ import { Upload, FileText, X, ArrowRight, Loader2, ChevronDown, ChevronUp } from
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { authProxy, uploadFile, invokeEdgeFunction } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 
 export default function UploadPage() {
@@ -22,7 +22,7 @@ export default function UploadPage() {
   const [roleTitle, setRoleTitle] = useState("");
   const [experienceRange, setExperienceRange] = useState("");
   const navigate = useNavigate();
-  const { user, profileId } = useAuth();
+  const { user, profileId, getToken } = useAuth();
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -54,46 +54,32 @@ export default function UploadPage() {
     setStatusText("Uploading file...");
 
     try {
-      const filePath = `${user.id}/${Date.now()}-${file.name}`;
-      const { error: uploadError } = await supabase.storage
-        .from("resume-files")
-        .upload(filePath, file);
+      const token = await getToken();
+      if (!token) throw new Error("Not authenticated");
 
-      if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
+      const filePath = `${user.id}/${Date.now()}-${file.name}`;
+      await uploadFile("resume-files", filePath, file, token);
 
       setStatusText("Creating record...");
-
-      const { data: resume, error: insertError } = await supabase
-        .from("resumes")
-        .insert({
-          profile_id: profileId,
-          file_name: file.name,
-          file_url: filePath,
-          status: "pending",
-        })
-        .select("id")
-        .single();
-
-      if (insertError) throw new Error(`Record creation failed: ${insertError.message}`);
+      const { resumeId } = await authProxy("create-resume", {
+        fileName: file.name,
+        fileUrl: filePath,
+      }, token);
 
       setStatusText("Extracting text...");
       const resumeText = await file.text();
 
       setStatusText("AI is analyzing your resume...");
+      const fnData = await invokeEdgeFunction("parse-resume", {
+        resumeId,
+        resumeText,
+        ...(showJD && jobDescription ? { jobDescription, roleTitle, experienceRange } : {}),
+      }, token);
 
-      const { data: fnData, error: fnError } = await supabase.functions.invoke("parse-resume", {
-        body: {
-          resumeId: resume.id,
-          resumeText,
-          ...(showJD && jobDescription ? { jobDescription, roleTitle, experienceRange } : {}),
-        },
-      });
-
-      if (fnError) throw new Error(fnError.message || "Analysis failed");
       if (fnData?.error) throw new Error(fnData.error);
 
       toast({ title: "Analysis complete!", description: "Your resume has been verified." });
-      navigate(`/reports/${resume.id}`);
+      navigate(`/reports/${resumeId}`);
     } catch (err: any) {
       console.error("Analysis error:", err);
       toast({
@@ -159,7 +145,6 @@ export default function UploadPage() {
                 </button>
               </div>
 
-              {/* Optional JD Section */}
               <button
                 type="button"
                 onClick={() => setShowJD(!showJD)}
@@ -180,32 +165,16 @@ export default function UploadPage() {
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1.5">
                         <Label htmlFor="role-title" className="text-xs">Role Title</Label>
-                        <Input
-                          id="role-title"
-                          placeholder="e.g. Senior Backend Engineer"
-                          value={roleTitle}
-                          onChange={(e) => setRoleTitle(e.target.value)}
-                        />
+                        <Input id="role-title" placeholder="e.g. Senior Backend Engineer" value={roleTitle} onChange={(e) => setRoleTitle(e.target.value)} />
                       </div>
                       <div className="space-y-1.5">
                         <Label htmlFor="exp-range" className="text-xs">Experience Range</Label>
-                        <Input
-                          id="exp-range"
-                          placeholder="e.g. 3-5 years"
-                          value={experienceRange}
-                          onChange={(e) => setExperienceRange(e.target.value)}
-                        />
+                        <Input id="exp-range" placeholder="e.g. 3-5 years" value={experienceRange} onChange={(e) => setExperienceRange(e.target.value)} />
                       </div>
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="jd-text" className="text-xs">Job Description</Label>
-                      <Textarea
-                        id="jd-text"
-                        placeholder="Paste the full job description here..."
-                        value={jobDescription}
-                        onChange={(e) => setJobDescription(e.target.value)}
-                        rows={5}
-                      />
+                      <Textarea id="jd-text" placeholder="Paste the full job description here..." value={jobDescription} onChange={(e) => setJobDescription(e.target.value)} rows={5} />
                     </div>
                   </motion.div>
                 )}

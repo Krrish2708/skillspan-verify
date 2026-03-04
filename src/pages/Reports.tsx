@@ -9,22 +9,20 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Eye, FileText } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { authProxy } from "@/lib/api";
 import type { Resume } from "@/lib/types";
 
 export default function ReportsPage() {
-  const { profileId } = useAuth();
+  const { profileId, getToken } = useAuth();
 
   const { data: resumes = [], isLoading } = useQuery({
     queryKey: ["reports", profileId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("resumes")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as Resume[];
+      const token = await getToken();
+      if (!token) throw new Error("Not authenticated");
+      const { resumes } = await authProxy("list-resumes", {}, token);
+      return resumes as Resume[];
     },
     enabled: !!profileId,
   });
@@ -59,12 +57,7 @@ export default function ReportsPage() {
               {resumes.map((resume, i) => {
                 const level = resume.status === "completed" ? getScoreLevel(resume.overall_score) : "medium";
                 return (
-                  <motion.div
-                    key={resume.id}
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.06 }}
-                  >
+                  <motion.div key={resume.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
                     <Link to={`/reports/${resume.id}`}>
                       <Card className="shadow-card hover:shadow-elevated transition-all duration-200 group cursor-pointer h-full">
                         <CardContent className="p-5">
@@ -76,12 +69,8 @@ export default function ReportsPage() {
                             )}
                             <Eye className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                           </div>
-                          <h3 className="font-display font-semibold text-foreground">
-                            {resume.candidate_name || resume.file_name}
-                          </h3>
-                          <p className="text-sm text-muted-foreground mb-3">
-                            {resume.candidate_role || "Processing..."}
-                          </p>
+                          <h3 className="font-display font-semibold text-foreground">{resume.candidate_name || resume.file_name}</h3>
+                          <p className="text-sm text-muted-foreground mb-3">{resume.candidate_role || "Processing..."}</p>
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
                             <FileText className="h-3 w-3" />
                             <span>{new Date(resume.created_at).toLocaleDateString()}</span>
