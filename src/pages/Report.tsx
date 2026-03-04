@@ -8,25 +8,14 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
 import {
-  Download,
-  AlertTriangle,
-  CheckCircle2,
-  XCircle,
-  Briefcase,
-  Code2,
-  Award,
-  ArrowLeft,
-  Loader2,
-  FileSearch,
-  ShieldCheck,
-  GraduationCap,
-  Link as LinkIcon,
-  Target,
-  Lightbulb,
+  Download, AlertTriangle, CheckCircle2, XCircle, Briefcase, Code2, Award,
+  ArrowLeft, Loader2, FileSearch, ShieldCheck, GraduationCap, Link as LinkIcon,
+  Target, Lightbulb,
 } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { authProxy } from "@/lib/api";
 import type { Resume, ResumeSkill, ParsedData } from "@/lib/types";
 
 const confidenceConfig = {
@@ -35,38 +24,36 @@ const confidenceConfig = {
   unverified: { icon: XCircle, label: "Risk", class: "bg-score-low" },
 };
 
+function ScoreCard({ label, score, subtitle }: { label: string; score: number | null; subtitle?: string }) {
+  const s = score ?? 0;
+  const color = s >= 75 ? "score-high" : s >= 50 ? "score-medium" : "score-low";
+  return (
+    <Card className="shadow-card">
+      <CardContent className="py-4 text-center">
+        <p className="text-xs text-muted-foreground mb-1">{label}</p>
+        <p className={`text-3xl font-display font-bold ${color}`}>{subtitle ? "—" : s}</p>
+        {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function ReportPage() {
   const { id } = useParams<{ id: string }>();
+  const { getToken } = useAuth();
 
-  const { data: resume, isLoading: loadingResume } = useQuery({
-    queryKey: ["resume", id],
+  const { data, isLoading } = useQuery({
+    queryKey: ["resume-report", id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("resumes")
-        .select("*")
-        .eq("id", id!)
-        .maybeSingle();
-      if (error) throw error;
-      return data as Resume | null;
+      const token = await getToken();
+      if (!token) throw new Error("Not authenticated");
+      return await authProxy("get-resume-with-skills", { resumeId: id }, token);
     },
     enabled: !!id,
   });
 
-  const { data: skills = [], isLoading: loadingSkills } = useQuery({
-    queryKey: ["resume-skills", id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("resume_skills")
-        .select("*")
-        .eq("resume_id", id!)
-        .order("score", { ascending: false });
-      if (error) throw error;
-      return data as ResumeSkill[];
-    },
-    enabled: !!id,
-  });
-
-  const isLoading = loadingResume || loadingSkills;
+  const resume = data?.resume as Resume | null | undefined;
+  const skills = (data?.skills || []) as ResumeSkill[];
 
   if (isLoading) {
     return (
@@ -180,7 +167,7 @@ export default function ReportPage() {
                       <div className="mt-2">
                         <p className="text-xs text-muted-foreground mb-1">Missing sections:</p>
                         <div className="flex flex-wrap gap-1.5">
-                          {atsBreakdown.missing_sections.map((s, i) => (
+                          {atsBreakdown.missing_sections.map((s: string, i: number) => (
                             <Badge key={i} variant="outline" className="text-xs">{s}</Badge>
                           ))}
                         </div>
@@ -230,7 +217,7 @@ export default function ReportPage() {
                       <div>
                         <p className="text-xs font-medium text-foreground mb-2">Matched Skills</p>
                         <div className="flex flex-wrap gap-1.5">
-                          {parsedData.matched_skills.map((s, i) => (
+                          {parsedData.matched_skills.map((s: string, i: number) => (
                             <Badge key={i} className="bg-score-high/10 text-score-high border-score-high/20 text-xs">{s}</Badge>
                           ))}
                         </div>
@@ -240,7 +227,7 @@ export default function ReportPage() {
                       <div>
                         <p className="text-xs font-medium text-foreground mb-2">Missing Skills</p>
                         <div className="flex flex-wrap gap-1.5">
-                          {parsedData.missing_skills.map((s, i) => (
+                          {parsedData.missing_skills.map((s: string, i: number) => (
                             <Badge key={i} variant="outline" className="text-xs border-score-low/30 text-score-low">{s}</Badge>
                           ))}
                         </div>
@@ -259,7 +246,7 @@ export default function ReportPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    {parsedData.experience_items.map((item, idx) => (
+                    {parsedData.experience_items.map((item: any, idx: number) => (
                       <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">
                         <div>
                           <p className="font-medium text-foreground text-sm">{item.role}</p>
@@ -334,7 +321,7 @@ export default function ReportPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    {parsedData.education.map((edu, idx) => (
+                    {parsedData.education.map((edu: any, idx: number) => (
                       <div key={idx}>
                         <p className="text-sm font-medium text-foreground">{edu.degree}</p>
                         <p className="text-xs text-muted-foreground">{edu.institution} · {edu.year}</p>
@@ -353,7 +340,7 @@ export default function ReportPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    {parsedData.certifications.map((cert, idx) => (
+                    {parsedData.certifications.map((cert: any, idx: number) => (
                       <div key={idx} className="flex items-start gap-2">
                         {cert.verified ? <CheckCircle2 className="h-4 w-4 mt-0.5 score-high flex-shrink-0" /> : <XCircle className="h-4 w-4 mt-0.5 score-low flex-shrink-0" />}
                         <div>
@@ -375,10 +362,10 @@ export default function ReportPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
-                    {parsedData.links.map((link, idx) => (
-                      <div key={idx} className="flex items-center gap-2 text-sm">
-                        <Badge variant="secondary" className="text-xs">{link.type}</Badge>
-                        <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline truncate">{link.url}</a>
+                    {parsedData.links.map((link: any, idx: number) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs capitalize">{link.type}</Badge>
+                        <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-xs text-accent hover:underline truncate">{link.url}</a>
                       </div>
                     ))}
                   </CardContent>
@@ -387,18 +374,17 @@ export default function ReportPage() {
 
               {/* Risk Flags */}
               {parsedData.risk_flags && parsedData.risk_flags.length > 0 && (
-                <Card className="shadow-card border-destructive/20">
+                <Card className="shadow-card border-score-low/20">
                   <CardHeader className="pb-3">
                     <CardTitle className="flex items-center gap-2 text-lg font-display">
-                      <AlertTriangle className="h-5 w-5 text-destructive" /> Risk Flags
+                      <AlertTriangle className="h-5 w-5 text-[hsl(var(--score-low))]" /> Risk Flags
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-2">
-                      {parsedData.risk_flags.map((flag, i) => (
-                        <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
-                          <span className="h-1.5 w-1.5 rounded-full bg-destructive mt-1.5 flex-shrink-0" />
-                          {flag}
+                      {parsedData.risk_flags.map((flag: string, i: number) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                          <XCircle className="h-4 w-4 mt-0.5 score-low shrink-0" />{flag}
                         </li>
                       ))}
                     </ul>
@@ -416,8 +402,8 @@ export default function ReportPage() {
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-2">
-                      {parsedData.improvement_suggestions.map((s, i) => (
-                        <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
+                      {parsedData.improvement_suggestions.map((s: string, i: number) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
                           <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-accent" />{s}
                         </li>
                       ))}
@@ -431,22 +417,5 @@ export default function ReportPage() {
       </main>
       <Footer />
     </div>
-  );
-}
-
-function ScoreCard({ label, score, subtitle }: { label: string; score: number; subtitle?: string }) {
-  const level = getScoreLevel(score);
-  const colorClass = level === "high" ? "text-[hsl(var(--score-high))]" : level === "medium" ? "text-[hsl(var(--score-medium))]" : "text-[hsl(var(--score-low))]";
-
-  return (
-    <Card className="shadow-card">
-      <CardContent className="py-4 text-center">
-        <p className="text-xs text-muted-foreground mb-1">{label}</p>
-        <p className={`text-2xl font-display font-bold ${subtitle ? "text-muted-foreground" : colorClass}`}>
-          {subtitle ? "—" : score}
-        </p>
-        {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
-      </CardContent>
-    </Card>
   );
 }

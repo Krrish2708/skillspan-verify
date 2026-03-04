@@ -3,7 +3,9 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { ClerkProvider } from "@clerk/clerk-react";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import { useState, useEffect } from "react";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import UploadPage from "./pages/Upload";
@@ -12,6 +14,7 @@ import ReportPage from "./pages/Report";
 import ReportsPage from "./pages/Reports";
 import ComparePage from "./pages/Compare";
 import AuthPage from "./pages/Auth";
+import OnboardPage from "./pages/Onboard";
 import DemoDashboard from "./pages/DemoDashboard";
 import DemoReport from "./pages/DemoReport";
 import CandidateDashboard from "./pages/CandidateDashboard";
@@ -19,12 +22,24 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-function ProtectedRoute({ children, allowedRole }: { children: React.ReactNode; allowedRole?: "hr" | "candidate" }) {
+function ProtectedRoute({
+  children,
+  allowedRole,
+}: {
+  children: React.ReactNode;
+  allowedRole?: "hr" | "candidate";
+}) {
   const { user, userRole, loading } = useAuth();
   if (loading) return null;
   if (!user) return <Navigate to="/auth" replace />;
-  if (allowedRole && userRole && userRole !== allowedRole) {
-    return <Navigate to={userRole === "candidate" ? "/candidate" : "/dashboard"} replace />;
+  if (!userRole) return <Navigate to="/onboard" replace />;
+  if (allowedRole && userRole !== allowedRole) {
+    return (
+      <Navigate
+        to={userRole === "candidate" ? "/candidate" : "/dashboard"}
+        replace
+      />
+    );
   }
   return <>{children}</>;
 }
@@ -33,31 +48,119 @@ const AppRoutes = () => (
   <Routes>
     <Route path="/" element={<Index />} />
     <Route path="/auth" element={<AuthPage />} />
+    <Route path="/onboard" element={<OnboardPage />} />
     <Route path="/demo" element={<DemoDashboard />} />
     <Route path="/demo/:id" element={<DemoReport />} />
-    <Route path="/candidate" element={<ProtectedRoute allowedRole="candidate"><CandidateDashboard /></ProtectedRoute>} />
-    <Route path="/dashboard" element={<ProtectedRoute allowedRole="hr"><Dashboard /></ProtectedRoute>} />
-    <Route path="/upload" element={<ProtectedRoute allowedRole="hr"><UploadPage /></ProtectedRoute>} />
-    <Route path="/bulk-upload" element={<ProtectedRoute allowedRole="hr"><BulkUploadPage /></ProtectedRoute>} />
-    <Route path="/reports" element={<ProtectedRoute allowedRole="hr"><ReportsPage /></ProtectedRoute>} />
-    <Route path="/reports/:id" element={<ProtectedRoute allowedRole="hr"><ReportPage /></ProtectedRoute>} />
-    <Route path="/compare" element={<ProtectedRoute allowedRole="hr"><ComparePage /></ProtectedRoute>} />
+    <Route
+      path="/candidate"
+      element={
+        <ProtectedRoute allowedRole="candidate">
+          <CandidateDashboard />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/dashboard"
+      element={
+        <ProtectedRoute allowedRole="hr">
+          <Dashboard />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/upload"
+      element={
+        <ProtectedRoute allowedRole="hr">
+          <UploadPage />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/bulk-upload"
+      element={
+        <ProtectedRoute allowedRole="hr">
+          <BulkUploadPage />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/reports"
+      element={
+        <ProtectedRoute allowedRole="hr">
+          <ReportsPage />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/reports/:id"
+      element={
+        <ProtectedRoute allowedRole="hr">
+          <ReportPage />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/compare"
+      element={
+        <ProtectedRoute allowedRole="hr">
+          <ComparePage />
+        </ProtectedRoute>
+      }
+    />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
-);
+function ClerkApp() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <AppRoutes />
+          </TooltipProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
+  );
+}
+
+const App = () => {
+  const [clerkKey, setClerkKey] = useState<string | null>(() =>
+    localStorage.getItem("__clerk_pk")
+  );
+
+  useEffect(() => {
+    if (clerkKey) return;
+    const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/clerk-config`;
+    fetch(url, {
+      headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.publishableKey) {
+          localStorage.setItem("__clerk_pk", d.publishableKey);
+          setClerkKey(d.publishableKey);
+        }
+      })
+      .catch((e) => console.error("Failed to load Clerk config:", e));
+  }, [clerkKey]);
+
+  if (!clerkKey) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-pulse text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
+
+  return (
+    <ClerkProvider publishableKey={clerkKey}>
+      <ClerkApp />
+    </ClerkProvider>
+  );
+};
 
 export default App;

@@ -1,11 +1,26 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createRemoteJWKSet, jwtVerify, decodeJwt } from "https://esm.sh/jose@5.9.6";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+const jwksCache = new Map<string, ReturnType<typeof createRemoteJWKSet>>();
+
+async function verifyClerkToken(token: string): Promise<string> {
+  const claims = decodeJwt(token);
+  const issuer = claims.iss as string;
+  if (!issuer) throw new Error("Invalid token: no issuer");
+  if (!jwksCache.has(issuer)) {
+    jwksCache.set(issuer, createRemoteJWKSet(new URL(`${issuer}/.well-known/jwks.json`)));
+  }
+  const { payload } = await jwtVerify(token, jwksCache.get(issuer)!);
+  if (!payload.sub) throw new Error("Invalid token: no sub claim");
+  return payload.sub;
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -21,20 +36,12 @@ serve(async (req) => {
       });
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    await verifyClerkToken(token);
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, serviceKey);
 
     const { resumeId, resumeText, jobDescription, roleTitle, experienceRange } = await req.json();
     if (!resumeId || !resumeText) {
@@ -283,7 +290,6 @@ SCORING FORMULA:
 
     const analysis = JSON.parse(toolCall.function.arguments);
 
-    // Update resume with all scores and parsed data
     await supabase
       .from("resumes")
       .update({
@@ -317,7 +323,6 @@ SCORING FORMULA:
       })
       .eq("id", resumeId);
 
-    // Insert skills
     if (analysis.skills?.length > 0) {
       const skillRows = analysis.skills.map((s: any) => ({
         resume_id: resumeId,

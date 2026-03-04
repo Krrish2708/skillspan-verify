@@ -8,32 +8,23 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
-  FileText,
-  Users,
-  AlertTriangle,
-  CheckCircle2,
-  Upload,
-  TrendingUp,
-  Eye,
-  GitCompareArrows,
+  FileText, Users, AlertTriangle, CheckCircle2, Upload, TrendingUp, Eye, GitCompareArrows,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { authProxy } from "@/lib/api";
 import type { Resume } from "@/lib/types";
 
 export default function Dashboard() {
-  const { profileId } = useAuth();
+  const { profileId, getToken } = useAuth();
 
   const { data: resumes = [], isLoading } = useQuery({
     queryKey: ["resumes", profileId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("resumes")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as Resume[];
+      const token = await getToken();
+      if (!token) throw new Error("Not authenticated");
+      const { resumes } = await authProxy("list-resumes", {}, token);
+      return resumes as Resume[];
     },
     enabled: !!profileId,
   });
@@ -81,12 +72,7 @@ export default function Dashboard() {
           {/* Stats Grid */}
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             {stats.map((stat, i) => (
-              <motion.div
-                key={stat.label}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.08 }}
-              >
+              <motion.div key={stat.label} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}>
                 <Card className="shadow-card">
                   <CardContent className="p-5">
                     <div className="flex items-center justify-between mb-3">
@@ -133,39 +119,18 @@ export default function Dashboard() {
                   {resumes.slice(0, 10).map((resume, i) => {
                     const level = resume.status === "completed" ? getScoreLevel(resume.overall_score) : "medium";
                     return (
-                      <motion.div
-                        key={resume.id}
-                        initial={{ opacity: 0, x: -8 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: i * 0.06 }}
-                      >
-                        <Link
-                          to={`/reports/${resume.id}`}
-                          className="flex items-center gap-4 p-4 rounded-lg hover:bg-secondary/50 transition-colors group"
-                        >
+                      <motion.div key={resume.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.06 }}>
+                        <Link to={`/reports/${resume.id}`} className="flex items-center gap-4 p-4 rounded-lg hover:bg-secondary/50 transition-colors group">
                           <ScoreBadge score={resume.status === "completed" ? resume.overall_score : 0} size="sm" />
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium text-foreground text-sm">
-                              {resume.candidate_name || resume.file_name}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {resume.candidate_role || resume.status}
-                            </p>
+                            <p className="font-medium text-foreground text-sm">{resume.candidate_name || resume.file_name}</p>
+                            <p className="text-xs text-muted-foreground">{resume.candidate_role || resume.status}</p>
                           </div>
-                          <span className="text-xs text-muted-foreground hidden sm:block">
-                            {new Date(resume.created_at).toLocaleDateString()}
-                          </span>
+                          <span className="text-xs text-muted-foreground hidden sm:block">{new Date(resume.created_at).toLocaleDateString()}</span>
                           {resume.status === "completed" ? (
-                            <Badge
-                              variant="secondary"
-                              className={`text-xs ${level === "high" ? "score-high" : level === "medium" ? "score-medium" : "score-low"}`}
-                            >
-                              {resume.overall_score}%
-                            </Badge>
+                            <Badge variant="secondary" className={`text-xs ${level === "high" ? "score-high" : level === "medium" ? "score-medium" : "score-low"}`}>{resume.overall_score}%</Badge>
                           ) : (
-                            <Badge variant="secondary" className="text-xs">
-                              {resume.status}
-                            </Badge>
+                            <Badge variant="secondary" className="text-xs">{resume.status}</Badge>
                           )}
                           <Eye className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                         </Link>
