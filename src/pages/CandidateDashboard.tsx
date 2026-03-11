@@ -12,7 +12,8 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import { authProxy, uploadFile, invokeEdgeFunction } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
+import { invokeEdgeFunction } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import type { ParsedData, ResumeSkill } from "@/lib/types";
 
@@ -57,13 +58,25 @@ export default function CandidateDashboard() {
       if (!token) throw new Error("Not authenticated");
 
       const filePath = `${user.id}/${Date.now()}-${file.name}`;
-      await uploadFile("resume-files", filePath, file, token);
+
+      const { error: uploadError } = await supabase.storage
+        .from("resume-files")
+        .upload(filePath, file, { contentType: file.type || "application/octet-stream" });
+      if (uploadError) throw uploadError;
 
       setStatusText("Creating record...");
-      const { resumeId } = await authProxy("create-resume", {
-        fileName: file.name,
-        fileUrl: filePath,
-      }, token);
+      const { data: resume, error: insertError } = await supabase
+        .from("resumes")
+        .insert({
+          profile_id: profileId,
+          file_name: file.name,
+          file_url: filePath,
+          status: "pending",
+        })
+        .select("id")
+        .single();
+      if (insertError) throw insertError;
+      const resumeId = resume.id;
 
       setStatusText("Extracting text...");
       const resumeText = await file.text();
@@ -77,14 +90,24 @@ export default function CandidateDashboard() {
       if (fnData?.error) throw new Error(fnData.error);
 
       // Fetch the completed resume and skills
-      const resumeData = await authProxy("get-resume-with-skills", { resumeId }, token);
+      const { data: resumeData } = await supabase
+        .from("resumes")
+        .select("*")
+        .eq("id", resumeId)
+        .single();
+
+      const { data: skills } = await supabase
+        .from("resume_skills")
+        .select("*")
+        .eq("resume_id", resumeId)
+        .order("score", { ascending: false });
 
       setResult({
-        overall_score: resumeData.resume.overall_score || 0,
-        ats_score: resumeData.resume.ats_score || 0,
-        credibility_score: resumeData.resume.credibility_score || 0,
-        parsed_data: (resumeData.resume.parsed_data || {}) as ParsedData,
-        skills: (resumeData.skills || []) as ResumeSkill[],
+        overall_score: resumeData?.overall_score || 0,
+        ats_score: resumeData?.ats_score || 0,
+        credibility_score: resumeData?.credibility_score || 0,
+        parsed_data: (resumeData?.parsed_data || {}) as ParsedData,
+        skills: (skills || []) as ResumeSkill[],
       });
 
       toast({ title: "Analysis complete!", description: "Your resume health check is ready." });

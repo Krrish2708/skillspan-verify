@@ -15,7 +15,7 @@ import {
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
-import { authProxy } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import type { Resume, ResumeSkill, ParsedData } from "@/lib/types";
 
 const confidenceConfig = {
@@ -40,16 +40,27 @@ function ScoreCard({ label, score, subtitle }: { label: string; score: number | 
 
 export default function ReportPage() {
   const { id } = useParams<{ id: string }>();
-  const { getToken } = useAuth();
+  const { profileId } = useAuth();
 
   const { data, isLoading } = useQuery({
     queryKey: ["resume-report", id],
     queryFn: async () => {
-      const token = await getToken();
-      if (!token) throw new Error("Not authenticated");
-      return await authProxy("get-resume-with-skills", { resumeId: id }, token);
+      const { data: resume, error: rErr } = await supabase
+        .from("resumes")
+        .select("*")
+        .eq("id", id!)
+        .maybeSingle();
+      if (rErr) throw rErr;
+
+      const { data: skills } = await supabase
+        .from("resume_skills")
+        .select("*")
+        .eq("resume_id", id!)
+        .order("score", { ascending: false });
+
+      return { resume, skills: skills || [] };
     },
-    enabled: !!id,
+    enabled: !!id && !!profileId,
   });
 
   const resume = data?.resume as Resume | null | undefined;
@@ -119,7 +130,6 @@ export default function ReportPage() {
             <ArrowLeft className="h-4 w-4" /> Back to Dashboard
           </Link>
 
-          {/* Header */}
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col md:flex-row items-start md:items-center gap-6 mb-8">
             <ScoreBadge score={resume.overall_score} size="xl" />
             <div className="flex-1">
@@ -132,7 +142,6 @@ export default function ReportPage() {
             </Button>
           </motion.div>
 
-          {/* Score Cards Row */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             <ScoreCard label="Overall" score={resume.overall_score} />
             <ScoreCard label="ATS Score" score={resume.ats_score} />
@@ -141,9 +150,7 @@ export default function ReportPage() {
           </div>
 
           <div className="grid lg:grid-cols-3 gap-6">
-            {/* Left column */}
             <div className="lg:col-span-2 space-y-6">
-              {/* ATS Breakdown */}
               {atsBreakdown && (
                 <Card className="shadow-card">
                   <CardHeader className="pb-4">
@@ -177,7 +184,6 @@ export default function ReportPage() {
                 </Card>
               )}
 
-              {/* Skills */}
               <Card className="shadow-card">
                 <CardHeader className="pb-4">
                   <CardTitle className="flex items-center gap-2 text-lg font-display">
@@ -203,7 +209,6 @@ export default function ReportPage() {
                 </CardContent>
               </Card>
 
-              {/* JD Relevancy */}
               {hasJD && (parsedData.matched_skills?.length || parsedData.missing_skills?.length) ? (
                 <Card className="shadow-card">
                   <CardHeader className="pb-4">
@@ -237,7 +242,6 @@ export default function ReportPage() {
                 </Card>
               ) : null}
 
-              {/* Experience */}
               {parsedData.experience_items && parsedData.experience_items.length > 0 && (
                 <Card className="shadow-card">
                   <CardHeader className="pb-4">
@@ -260,9 +264,7 @@ export default function ReportPage() {
               )}
             </div>
 
-            {/* Right column */}
             <div className="space-y-6">
-              {/* Credibility Breakdown */}
               {credBreakdown && (
                 <Card className="shadow-card">
                   <CardHeader className="pb-3">
@@ -291,7 +293,6 @@ export default function ReportPage() {
                 </Card>
               )}
 
-              {/* Trust Summary */}
               <Card className="shadow-card">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg font-display">Trust Summary</CardTitle>
@@ -312,7 +313,6 @@ export default function ReportPage() {
                 </CardContent>
               </Card>
 
-              {/* Education */}
               {parsedData.education && parsedData.education.length > 0 && (
                 <Card className="shadow-card">
                   <CardHeader className="pb-3">
@@ -331,7 +331,6 @@ export default function ReportPage() {
                 </Card>
               )}
 
-              {/* Certifications */}
               {parsedData.certifications && parsedData.certifications.length > 0 && (
                 <Card className="shadow-card">
                   <CardHeader className="pb-3">
@@ -353,7 +352,6 @@ export default function ReportPage() {
                 </Card>
               )}
 
-              {/* Links */}
               {parsedData.links && parsedData.links.length > 0 && (
                 <Card className="shadow-card">
                   <CardHeader className="pb-3">
@@ -363,36 +361,15 @@ export default function ReportPage() {
                   </CardHeader>
                   <CardContent className="space-y-2">
                     {parsedData.links.map((link: any, idx: number) => (
-                      <div key={idx} className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs capitalize">{link.type}</Badge>
-                        <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-xs text-accent hover:underline truncate">{link.url}</a>
-                      </div>
+                      <a key={idx} href={link.url} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-sm text-accent hover:underline">
+                        <LinkIcon className="h-3.5 w-3.5" />{link.label || link.url}
+                      </a>
                     ))}
                   </CardContent>
                 </Card>
               )}
 
-              {/* Risk Flags */}
-              {parsedData.risk_flags && parsedData.risk_flags.length > 0 && (
-                <Card className="shadow-card border-score-low/20">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-lg font-display">
-                      <AlertTriangle className="h-5 w-5 text-[hsl(var(--score-low))]" /> Risk Flags
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-2">
-                      {parsedData.risk_flags.map((flag: string, i: number) => (
-                        <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                          <XCircle className="h-4 w-4 mt-0.5 score-low shrink-0" />{flag}
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Improvement Suggestions */}
               {parsedData.improvement_suggestions && parsedData.improvement_suggestions.length > 0 && (
                 <Card className="shadow-card">
                   <CardHeader className="pb-3">
