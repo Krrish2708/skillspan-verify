@@ -10,19 +10,22 @@ import { Link } from "react-router-dom";
 import { Eye, FileText } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
-import { authProxy } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import type { Resume } from "@/lib/types";
 
 export default function ReportsPage() {
-  const { profileId, getToken } = useAuth();
+  const { profileId } = useAuth();
 
   const { data: resumes = [], isLoading } = useQuery({
     queryKey: ["reports", profileId],
     queryFn: async () => {
-      const token = await getToken();
-      if (!token) throw new Error("Not authenticated");
-      const { resumes } = await authProxy("list-resumes", {}, token);
-      return resumes as Resume[];
+      const { data, error } = await supabase
+        .from("resumes")
+        .select("*")
+        .eq("profile_id", profileId!)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data || []) as Resume[];
     },
     enabled: !!profileId,
   });

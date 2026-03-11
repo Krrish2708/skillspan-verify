@@ -7,7 +7,7 @@ import {
   useCallback,
   ReactNode,
 } from "react";
-import { authProxy } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 
 type AppRole = "hr" | "candidate";
 
@@ -45,29 +45,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const token = await getToken();
-      if (!token) {
-        setLoading(false);
-        return;
+      const clerkId = clerkUser.id;
+      const email = clerkUser.primaryEmailAddress?.emailAddress || "";
+      const fullName = clerkUser.fullName || "";
+
+      // Try to find existing profile
+      let { data: profile } = await supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .eq("auth_id", clerkId)
+        .maybeSingle();
+
+      // Create profile if not found
+      if (!profile) {
+        const { data: newProfile, error } = await supabase
+          .from("profiles")
+          .insert({ auth_id: clerkId, email, full_name: fullName })
+          .select("id, full_name, email")
+          .single();
+        if (error) throw error;
+        profile = newProfile;
       }
 
-      const data = await authProxy(
-        "get-profile",
-        {
-          email: clerkUser.primaryEmailAddress?.emailAddress || "",
-          fullName: clerkUser.fullName || "",
-        },
-        token
-      );
+      setProfileId(profile?.id || null);
 
-      setProfileId(data.profileId);
-      setUserRole((data.role as AppRole) || null);
+      // Fetch role
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", clerkId)
+        .maybeSingle();
+
+      setUserRole((roleData?.role as AppRole) || null);
     } catch (e) {
       console.error("Failed to fetch profile:", e);
     } finally {
       setLoading(false);
     }
-  }, [clerkUser, getToken]);
+  }, [clerkUser]);
 
   useEffect(() => {
     if (!isLoaded) return;

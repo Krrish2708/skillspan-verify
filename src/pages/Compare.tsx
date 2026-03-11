@@ -15,7 +15,7 @@ import {
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
-import { authProxy } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import type { ResumeSkill } from "@/lib/types";
 
 interface CandidateWithSkills {
@@ -30,33 +30,43 @@ const confidenceIcon = { verified: CheckCircle2, partially_verified: AlertTriang
 const confidenceLabel = { verified: "Verified", partially_verified: "Partial", unverified: "Risk" };
 
 export default function ComparePage() {
-  const { profileId, getToken } = useAuth();
+  const { profileId } = useAuth();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const { data: candidates = [], isLoading } = useQuery({
     queryKey: ["compare-candidates", profileId],
     queryFn: async () => {
-      const token = await getToken();
-      if (!token) throw new Error("Not authenticated");
-      const { resumes, skills } = await authProxy("list-completed-with-skills", {}, token);
-
+      const { data: resumes, error: rErr } = await supabase
+        .from("resumes")
+        .select("*")
+        .eq("profile_id", profileId!)
+        .eq("status", "completed")
+        .order("created_at", { ascending: false });
+      if (rErr) throw rErr;
       if (!resumes || resumes.length === 0) return [];
 
+      const resumeIds = resumes.map((r) => r.id);
+      const { data: skills } = await supabase
+        .from("resume_skills")
+        .select("*")
+        .in("resume_id", resumeIds);
+
       const skillsByResume = new Map<string, ResumeSkill[]>();
-      (skills || []).forEach((s: ResumeSkill) => {
-        if (!skillsByResume.has(s.resume_id)) skillsByResume.set(s.resume_id, []);
-        skillsByResume.get(s.resume_id)!.push(s);
+      (skills || []).forEach((s) => {
+        const sk = s as ResumeSkill;
+        if (!skillsByResume.has(sk.resume_id)) skillsByResume.set(sk.resume_id, []);
+        skillsByResume.get(sk.resume_id)!.push(sk);
       });
 
-      return resumes.map((r: any): CandidateWithSkills => ({
+      return resumes.map((r): CandidateWithSkills => ({
         id: r.id,
         name: r.candidate_name || r.file_name,
         role: r.candidate_role || "Unknown",
-        overallScore: r.overall_score,
-        skills: (skillsByResume.get(r.id) || []).map((s: ResumeSkill) => ({
+        overallScore: r.overall_score ?? 0,
+        skills: (skillsByResume.get(r.id) || []).map((s) => ({
           name: s.skill_name,
           score: s.score,
-          confidence: s.confidence,
+          confidence: s.confidence as "verified" | "partially_verified" | "unverified",
         })),
       }));
     },
@@ -72,7 +82,7 @@ export default function ComparePage() {
   };
 
   const selected = candidates.filter((c) => selectedIds.includes(c.id));
-  const allSkills = Array.from(new Set(selected.flatMap((c) => c.skills.map((s) => s.name)))) as string[];
+  const allSkills: string[] = Array.from(new Set(selected.flatMap((c) => c.skills.map((s) => s.name))));
   const getSkill = (candidate: CandidateWithSkills, skillName: string) => candidate.skills.find((s) => s.name === skillName);
   const getBestForSkill = (skillName: string) => {
     let best = -1;
@@ -100,7 +110,6 @@ export default function ComparePage() {
             <p className="text-muted-foreground text-sm mt-1">Select 2–3 candidates to compare their verified skill scores side by side.</p>
           </div>
 
-          {/* Candidate Selector */}
           <Card className="shadow-card mb-8">
             <CardHeader className="pb-3">
               <CardTitle className="text-base font-display">Select Candidates ({selectedIds.length}/3)</CardTitle>
@@ -139,7 +148,6 @@ export default function ComparePage() {
             </CardContent>
           </Card>
 
-          {/* Comparison View */}
           <AnimatePresence mode="wait">
             {selected.length >= 2 ? (
               <motion.div key="comparison" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }} transition={{ duration: 0.3 }}>
@@ -164,7 +172,7 @@ export default function ComparePage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-1">
-                    {allSkills.map((skillName, si) => {
+                    {allSkills.map((skillName: string, si: number) => {
                       const bestId = getBestForSkill(skillName);
                       return (
                         <div key={skillName}>

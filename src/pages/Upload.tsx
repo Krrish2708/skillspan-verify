@@ -9,7 +9,8 @@ import { Upload, FileText, X, ArrowRight, Loader2, ChevronDown, ChevronUp } from
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { authProxy, uploadFile, invokeEdgeFunction } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
+import { invokeEdgeFunction } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 
 export default function UploadPage() {
@@ -58,13 +59,26 @@ export default function UploadPage() {
       if (!token) throw new Error("Not authenticated");
 
       const filePath = `${user.id}/${Date.now()}-${file.name}`;
-      await uploadFile("resume-files", filePath, file, token);
+
+      // Upload file directly to Supabase storage
+      const { error: uploadError } = await supabase.storage
+        .from("resume-files")
+        .upload(filePath, file, { contentType: file.type || "application/octet-stream" });
+      if (uploadError) throw uploadError;
 
       setStatusText("Creating record...");
-      const { resumeId } = await authProxy("create-resume", {
-        fileName: file.name,
-        fileUrl: filePath,
-      }, token);
+      const { data: resume, error: insertError } = await supabase
+        .from("resumes")
+        .insert({
+          profile_id: profileId,
+          file_name: file.name,
+          file_url: filePath,
+          status: "pending",
+        })
+        .select("id")
+        .single();
+      if (insertError) throw insertError;
+      const resumeId = resume.id;
 
       setStatusText("Extracting text...");
       const resumeText = await file.text();

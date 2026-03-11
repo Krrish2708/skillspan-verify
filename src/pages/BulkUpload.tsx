@@ -12,7 +12,8 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import { authProxy, uploadFile, invokeEdgeFunction } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
+import { invokeEdgeFunction } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 
@@ -72,12 +73,24 @@ export default function BulkUploadPage() {
       try {
         setFiles((prev) => prev.map((item, idx) => idx === i ? { ...item, status: "uploading" } : item));
         const filePath = `${user.id}/${Date.now()}-${f.file.name}`;
-        await uploadFile("resume-files", filePath, f.file, token);
 
-        const { resumeId } = await authProxy("create-resume", {
-          fileName: f.file.name,
-          fileUrl: filePath,
-        }, token);
+        const { error: uploadError } = await supabase.storage
+          .from("resume-files")
+          .upload(filePath, f.file, { contentType: f.file.type || "application/octet-stream" });
+        if (uploadError) throw uploadError;
+
+        const { data: resume, error: insertError } = await supabase
+          .from("resumes")
+          .insert({
+            profile_id: profileId,
+            file_name: f.file.name,
+            file_url: filePath,
+            status: "pending",
+          })
+          .select("id")
+          .single();
+        if (insertError) throw insertError;
+        const resumeId = resume.id;
 
         setFiles((prev) => prev.map((item, idx) => idx === i ? { ...item, status: "analyzing", resumeId } : item));
 
@@ -119,7 +132,6 @@ export default function BulkUploadPage() {
             <p className="text-muted-foreground">Upload multiple resumes, optionally add a job description, and rank candidates by AI-verified scores.</p>
           </div>
 
-          {/* Job Description */}
           <Card className="shadow-card mb-6">
             <CardHeader className="pb-3"><CardTitle className="text-base font-display">Job Description (optional)</CardTitle></CardHeader>
             <CardContent className="space-y-4">
@@ -131,7 +143,6 @@ export default function BulkUploadPage() {
             </CardContent>
           </Card>
 
-          {/* Drop zone */}
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
             className={`relative border-2 border-dashed rounded-xl p-12 text-center transition-all duration-200 cursor-pointer mb-6 ${dragActive ? "border-accent bg-accent/5" : "border-border hover:border-accent/50 bg-card"}`}
             onDragEnter={handleDrag} onDragOver={handleDrag} onDragLeave={handleDrag} onDrop={handleDrop}
@@ -142,7 +153,6 @@ export default function BulkUploadPage() {
             <p className="text-sm text-muted-foreground">or click to browse. Supports PDF, DOC, DOCX, TXT</p>
           </motion.div>
 
-          {/* File list */}
           {files.length > 0 && (
             <Card className="shadow-card mb-6">
               <CardHeader className="pb-3"><CardTitle className="text-base font-display">Uploaded Files ({files.length})</CardTitle></CardHeader>

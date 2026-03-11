@@ -2,16 +2,15 @@ import { useState, useEffect } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Users, UserCheck, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { authProxy } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
 export default function OnboardPage() {
-  const { user, userRole, loading, getToken, refreshProfile } = useAuth();
+  const { user, userRole, loading, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
 
@@ -29,11 +28,27 @@ export default function OnboardPage() {
   }, [user, userRole, loading, navigate]);
 
   const handleSelectRole = async (role: "hr" | "candidate") => {
+    if (!user) return;
     setSubmitting(true);
     try {
-      const token = await getToken();
-      if (!token) throw new Error("Not authenticated");
-      await authProxy("set-role", { role }, token);
+      // Check if role already exists
+      const { data: existing } = await supabase
+        .from("user_roles")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (existing) {
+        toast({ title: "Role already set", variant: "destructive" });
+        await refreshProfile();
+        return;
+      }
+
+      const { error } = await supabase
+        .from("user_roles")
+        .insert({ user_id: user.id, role });
+      if (error) throw error;
+
       await refreshProfile();
       navigate(role === "candidate" ? "/candidate" : "/dashboard", {
         replace: true,
