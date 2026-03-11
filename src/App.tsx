@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ClerkProvider } from "@clerk/clerk-react";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
-import { useState, useEffect } from "react";
+
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import UploadPage from "./pages/Upload";
@@ -127,37 +127,19 @@ function ClerkApp() {
   );
 }
 
+const CLERK_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string;
+
 const App = () => {
-  const [clerkKey, setClerkKey] = useState<string | null>(() =>
-    localStorage.getItem("__clerk_pk")
-  );
-
-  useEffect(() => {
-    if (clerkKey) return;
-    const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/clerk-config`;
-    fetch(url, {
-      headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
-    })
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.publishableKey) {
-          localStorage.setItem("__clerk_pk", d.publishableKey);
-          setClerkKey(d.publishableKey);
-        }
-      })
-      .catch((e) => console.error("Failed to load Clerk config:", e));
-  }, [clerkKey]);
-
-  if (!clerkKey) {
+  if (!CLERK_KEY) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-pulse text-muted-foreground">Loading...</div>
+        <div className="text-destructive">Missing VITE_CLERK_PUBLISHABLE_KEY</div>
       </div>
     );
   }
 
   return (
-    <ClerkProvider publishableKey={clerkKey}>
+    <ClerkProvider publishableKey={CLERK_KEY}>
       <ClerkApp />
     </ClerkProvider>
   );
