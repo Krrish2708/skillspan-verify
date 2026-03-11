@@ -72,7 +72,7 @@ export default function ComparePage() {
   };
 
   const selected = candidates.filter((c) => selectedIds.includes(c.id));
-  const allSkills: string[] = Array.from(new Set(selected.flatMap((c) => c.skills.map((s) => s.name))));
+  const allSkills = Array.from(new Set(selected.flatMap((c) => c.skills.map((s) => s.name)))) as string[];
   const getSkill = (candidate: CandidateWithSkills, skillName: string) => candidate.skills.find((s) => s.name === skillName);
   const getBestForSkill = (skillName: string) => {
     let best = -1;
