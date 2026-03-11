@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ClerkProvider } from "@clerk/clerk-react";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
-import { useState, useEffect } from "react";
+
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import UploadPage from "./pages/Upload";
