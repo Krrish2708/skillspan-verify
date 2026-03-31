@@ -28,11 +28,11 @@ function ScoreCard({ label, score, subtitle }: { label: string; score: number | 
   const s = score ?? 0;
   const color = s >= 75 ? "score-high" : s >= 50 ? "score-medium" : "score-low";
   return (
-    <Card className="shadow-card">
-      <CardContent className="py-4 text-center">
-        <p className="text-xs text-muted-foreground mb-1">{label}</p>
-        <p className={`text-3xl font-display font-bold ${color}`}>{subtitle ? "—" : s}</p>
-        {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
+    <Card className="premium-card border-border/60">
+      <CardContent className="py-5 px-6 text-center">
+        <p className="text-xs text-muted-foreground mb-2 font-medium uppercase tracking-wider">{label}</p>
+        <p className={`text-4xl font-display font-bold tabular-nums ${color}`}>{subtitle ? "—" : s}</p>
+        {subtitle && <p className="text-xs text-muted-foreground mt-1.5">{subtitle}</p>}
       </CardContent>
     </Card>
   );
@@ -70,12 +70,12 @@ export default function ReportPage() {
     return (
       <div className="min-h-screen bg-background flex flex-col">
         <Navbar />
-        <main className="flex-1 py-10">
-          <div className="container max-w-5xl mx-auto px-4">
-            <Skeleton className="h-8 w-48 mb-6" />
+        <main className="flex-1 py-12">
+          <div className="container max-w-6xl mx-auto px-6">
+            <Skeleton className="h-8 w-48 mb-8 rounded-xl" />
             <div className="grid lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2"><Skeleton className="h-64 w-full rounded-xl" /></div>
-              <Skeleton className="h-48 w-full rounded-xl" />
+              <div className="lg:col-span-2"><Skeleton className="h-64 w-full rounded-2xl" /></div>
+              <Skeleton className="h-48 w-full rounded-2xl" />
             </div>
           </div>
         </main>
@@ -88,11 +88,11 @@ export default function ReportPage() {
     return (
       <div className="min-h-screen bg-background flex flex-col">
         <Navbar />
-        <main className="flex-1 py-10">
-          <div className="container max-w-5xl mx-auto px-4 text-center">
+        <main className="flex-1 py-12">
+          <div className="container max-w-6xl mx-auto px-6 text-center py-20">
             <h1 className="text-2xl font-display font-bold text-foreground mb-4">Report not found</h1>
             <p className="text-muted-foreground mb-6">This resume report doesn't exist or you don't have access.</p>
-            <Link to="/dashboard"><Button variant="outline">Back to Dashboard</Button></Link>
+            <Link to="/dashboard"><Button variant="outline" className="border-border/60">Back to Dashboard</Button></Link>
           </div>
         </main>
         <Footer />
@@ -104,7 +104,7 @@ export default function ReportPage() {
     return (
       <div className="min-h-screen bg-background flex flex-col">
         <Navbar />
-        <main className="flex-1 flex items-center justify-center py-10">
+        <main className="flex-1 flex items-center justify-center py-12">
           <div className="text-center">
             <Loader2 className="h-10 w-10 animate-spin text-accent mx-auto mb-4" />
             <h2 className="text-xl font-display font-bold text-foreground mb-2">Analyzing Resume</h2>
@@ -124,25 +124,25 @@ export default function ReportPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
-      <main className="flex-1 py-10">
-        <div className="container max-w-5xl mx-auto px-4">
-          <Link to="/dashboard" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6">
+      <main className="flex-1 py-12">
+        <div className="container max-w-6xl mx-auto px-6">
+          <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-8 transition-colors duration-200">
             <ArrowLeft className="h-4 w-4" /> Back to Dashboard
           </Link>
 
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col md:flex-row items-start md:items-center gap-6 mb-8">
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col md:flex-row items-start md:items-center gap-6 mb-10">
             <ScoreBadge score={resume.overall_score} size="xl" />
             <div className="flex-1">
-              <h1 className="text-2xl font-display font-bold text-foreground">{resume.candidate_name || "Unknown Candidate"}</h1>
-              <p className="text-muted-foreground">{resume.candidate_role || "Unknown Role"}</p>
-              <p className="text-sm text-muted-foreground mt-1">{resume.file_name}</p>
+              <h1 className="text-3xl font-display font-bold text-foreground tracking-tight">{resume.candidate_name || "Unknown Candidate"}</h1>
+              <p className="text-muted-foreground mt-1">{resume.candidate_role || "Unknown Role"}</p>
+              <p className="text-sm text-muted-foreground/60 mt-1">{resume.file_name}</p>
             </div>
-            <Button variant="outline" className="gap-2" disabled>
+            <Button variant="outline" className="gap-2 border-border/60" disabled>
               <Download className="h-4 w-4" /> Export PDF
             </Button>
           </motion.div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-5 mb-10">
             <ScoreCard label="Overall" score={resume.overall_score} />
             <ScoreCard label="ATS Score" score={resume.ats_score} />
             <ScoreCard label="Credibility" score={resume.credibility_score} />
@@ -152,17 +152,20 @@ export default function ReportPage() {
           <div className="grid lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
               {atsBreakdown && (
-                <Card className="shadow-card">
-                  <CardHeader className="pb-4">
-                    <CardTitle className="flex items-center gap-2 text-lg font-display">
-                      <FileSearch className="h-5 w-5 text-accent" /> ATS Breakdown
+                <Card className="premium-card border-border/60">
+                  <CardHeader className="pb-4 px-6 pt-6">
+                    <CardTitle className="flex items-center gap-2.5 text-lg font-display">
+                      <div className="h-8 w-8 rounded-lg bg-accent/10 flex items-center justify-center">
+                        <FileSearch className="h-4 w-4 text-accent" />
+                      </div>
+                      ATS Breakdown
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-3">
+                  <CardContent className="space-y-3 px-6 pb-6">
                     <ScoreBar score={atsBreakdown.formatting_score} label="Formatting" />
                     <ScoreBar score={atsBreakdown.keyword_score} label="Keywords" />
                     <ScoreBar score={atsBreakdown.structure_score} label="Structure" />
-                    <Separator className="my-3" />
+                    <Separator className="my-4" />
                     <div className="flex items-center gap-2 text-sm">
                       {atsBreakdown.contact_info_present ? (
                         <><CheckCircle2 className="h-4 w-4 score-high" /><span className="text-foreground">Contact info detected</span></>
@@ -171,11 +174,11 @@ export default function ReportPage() {
                       )}
                     </div>
                     {atsBreakdown.missing_sections?.length > 0 && (
-                      <div className="mt-2">
-                        <p className="text-xs text-muted-foreground mb-1">Missing sections:</p>
+                      <div className="mt-3">
+                        <p className="text-xs text-muted-foreground mb-2">Missing sections:</p>
                         <div className="flex flex-wrap gap-1.5">
                           {atsBreakdown.missing_sections.map((s: string, i: number) => (
-                            <Badge key={i} variant="outline" className="text-xs">{s}</Badge>
+                            <Badge key={i} variant="outline" className="text-xs border-border/60">{s}</Badge>
                           ))}
                         </div>
                       </div>
@@ -184,13 +187,16 @@ export default function ReportPage() {
                 </Card>
               )}
 
-              <Card className="shadow-card">
-                <CardHeader className="pb-4">
-                  <CardTitle className="flex items-center gap-2 text-lg font-display">
-                    <Code2 className="h-5 w-5 text-accent" /> Skill Verification
+              <Card className="premium-card border-border/60">
+                <CardHeader className="pb-4 px-6 pt-6">
+                  <CardTitle className="flex items-center gap-2.5 text-lg font-display">
+                    <div className="h-8 w-8 rounded-lg bg-accent/10 flex items-center justify-center">
+                      <Code2 className="h-4 w-4 text-accent" />
+                    </div>
+                    Skill Verification
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-4 px-6 pb-6">
                   {skills.length === 0 && <p className="text-sm text-muted-foreground">No skills extracted yet.</p>}
                   {skills.map((skill, i) => {
                     const config = confidenceConfig[skill.confidence] || confidenceConfig.unverified;
@@ -200,7 +206,7 @@ export default function ReportPage() {
                           <Badge variant="secondary" className="text-xs">
                             <config.icon className="h-3 w-3 mr-1" />{config.label}
                           </Badge>
-                          <span className="text-xs text-muted-foreground">{skill.evidence}</span>
+                          <span className="text-xs text-muted-foreground/60">{skill.evidence}</span>
                         </div>
                         <ScoreBar score={skill.score} label={skill.skill_name} />
                       </motion.div>
@@ -210,20 +216,23 @@ export default function ReportPage() {
               </Card>
 
               {hasJD && (parsedData.matched_skills?.length || parsedData.missing_skills?.length) ? (
-                <Card className="shadow-card">
-                  <CardHeader className="pb-4">
-                    <CardTitle className="flex items-center gap-2 text-lg font-display">
-                      <Target className="h-5 w-5 text-accent" /> JD Relevance
+                <Card className="premium-card border-border/60">
+                  <CardHeader className="pb-4 px-6 pt-6">
+                    <CardTitle className="flex items-center gap-2.5 text-lg font-display">
+                      <div className="h-8 w-8 rounded-lg bg-accent/10 flex items-center justify-center">
+                        <Target className="h-4 w-4 text-accent" />
+                      </div>
+                      JD Relevance
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
+                  <CardContent className="space-y-4 px-6 pb-6">
                     <ScoreBar score={resume.relevancy_score} label="Relevance Score" />
                     {parsedData.matched_skills && parsedData.matched_skills.length > 0 && (
                       <div>
                         <p className="text-xs font-medium text-foreground mb-2">Matched Skills</p>
                         <div className="flex flex-wrap gap-1.5">
                           {parsedData.matched_skills.map((s: string, i: number) => (
-                            <Badge key={i} className="bg-score-high/10 text-score-high border-score-high/20 text-xs">{s}</Badge>
+                            <Badge key={i} className="bg-[hsl(152,60%,42%)]/10 text-[hsl(152,60%,42%)] border-[hsl(152,60%,42%)]/20 text-xs">{s}</Badge>
                           ))}
                         </div>
                       </div>
@@ -233,7 +242,7 @@ export default function ReportPage() {
                         <p className="text-xs font-medium text-foreground mb-2">Missing Skills</p>
                         <div className="flex flex-wrap gap-1.5">
                           {parsedData.missing_skills.map((s: string, i: number) => (
-                            <Badge key={i} variant="outline" className="text-xs border-score-low/30 text-score-low">{s}</Badge>
+                            <Badge key={i} variant="outline" className="text-xs border-[hsl(0,72%,51%)]/30 text-[hsl(0,72%,51%)]">{s}</Badge>
                           ))}
                         </div>
                       </div>
@@ -243,18 +252,21 @@ export default function ReportPage() {
               ) : null}
 
               {parsedData.experience_items && parsedData.experience_items.length > 0 && (
-                <Card className="shadow-card">
-                  <CardHeader className="pb-4">
-                    <CardTitle className="flex items-center gap-2 text-lg font-display">
-                      <Briefcase className="h-5 w-5 text-accent" /> Experience
+                <Card className="premium-card border-border/60">
+                  <CardHeader className="pb-4 px-6 pt-6">
+                    <CardTitle className="flex items-center gap-2.5 text-lg font-display">
+                      <div className="h-8 w-8 rounded-lg bg-accent/10 flex items-center justify-center">
+                        <Briefcase className="h-4 w-4 text-accent" />
+                      </div>
+                      Experience
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-3">
+                  <CardContent className="space-y-3 px-6 pb-6">
                     {parsedData.experience_items.map((item: any, idx: number) => (
-                      <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">
+                      <div key={idx} className="flex items-center justify-between p-4 rounded-xl bg-secondary/40 hover:bg-secondary/60 transition-colors duration-200">
                         <div>
                           <p className="font-medium text-foreground text-sm">{item.role}</p>
-                          <p className="text-xs text-muted-foreground">{item.company} · {item.duration}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{item.company} · {item.duration}</p>
                         </div>
                         {item.verified ? <CheckCircle2 className="h-4 w-4 score-high" /> : <AlertTriangle className="h-4 w-4 score-medium" />}
                       </div>
@@ -266,65 +278,71 @@ export default function ReportPage() {
 
             <div className="space-y-6">
               {credBreakdown && (
-                <Card className="shadow-card">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-lg font-display">
-                      <ShieldCheck className="h-5 w-5 text-accent" /> Credibility
+                <Card className="premium-card border-border/60">
+                  <CardHeader className="pb-3 px-6 pt-6">
+                    <CardTitle className="flex items-center gap-2.5 text-lg font-display">
+                      <div className="h-8 w-8 rounded-lg bg-accent/10 flex items-center justify-center">
+                        <ShieldCheck className="h-4 w-4 text-accent" />
+                      </div>
+                      Credibility
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-3">
+                  <CardContent className="space-y-3 px-6 pb-6">
                     <ScoreBar score={resume.credibility_score} label="Evidence Score" />
                     <Separator />
-                    <div className="text-sm space-y-2">
+                    <div className="text-sm space-y-3">
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">GitHub Linked</span>
                         <span className="font-medium">{credBreakdown.github_linked ? "Yes" : "No"}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Certs Verified</span>
-                        <span className="font-medium text-foreground">{credBreakdown.certifications_verified}/{credBreakdown.certifications_verified + credBreakdown.certifications_unverified}</span>
+                        <span className="font-medium text-foreground tabular-nums">{credBreakdown.certifications_verified}/{credBreakdown.certifications_verified + credBreakdown.certifications_unverified}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Projects w/ Links</span>
-                        <span className="font-medium text-foreground">{credBreakdown.projects_with_links}/{credBreakdown.projects_with_links + credBreakdown.projects_without_links}</span>
+                        <span className="font-medium text-foreground tabular-nums">{credBreakdown.projects_with_links}/{credBreakdown.projects_with_links + credBreakdown.projects_without_links}</span>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
               )}
 
-              <Card className="shadow-card">
-                <CardHeader className="pb-3">
+              <Card className="premium-card border-border/60">
+                <CardHeader className="pb-3 px-6 pt-6">
                   <CardTitle className="text-lg font-display">Trust Summary</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-3 px-6 pb-6">
                   <ScoreBar score={resume.overall_score} label="Overall Trust" />
                   <Separator />
-                  <div className="text-sm space-y-2">
+                  <div className="text-sm space-y-3">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Verified Skills</span>
-                      <span className="font-medium text-foreground">{skills.filter(s => s.confidence === "verified").length}/{skills.length}</span>
+                      <span className="font-medium text-foreground tabular-nums">{skills.filter(s => s.confidence === "verified").length}/{skills.length}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">At Risk</span>
-                      <span className="font-medium score-low">{skills.filter(s => s.confidence === "unverified").length}</span>
+                      <span className="font-medium score-low tabular-nums">{skills.filter(s => s.confidence === "unverified").length}</span>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
               {parsedData.education && parsedData.education.length > 0 && (
-                <Card className="shadow-card">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-lg font-display">
-                      <GraduationCap className="h-5 w-5 text-accent" /> Education
+                <Card className="premium-card border-border/60">
+                  <CardHeader className="pb-3 px-6 pt-6">
+                    <CardTitle className="flex items-center gap-2.5 text-lg font-display">
+                      <div className="h-8 w-8 rounded-lg bg-accent/10 flex items-center justify-center">
+                        <GraduationCap className="h-4 w-4 text-accent" />
+                      </div>
+                      Education
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-3">
+                  <CardContent className="space-y-3 px-6 pb-6">
                     {parsedData.education.map((edu: any, idx: number) => (
                       <div key={idx}>
                         <p className="text-sm font-medium text-foreground">{edu.degree}</p>
-                        <p className="text-xs text-muted-foreground">{edu.institution} · {edu.year}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{edu.institution} · {edu.year}</p>
                       </div>
                     ))}
                   </CardContent>
@@ -332,15 +350,18 @@ export default function ReportPage() {
               )}
 
               {parsedData.certifications && parsedData.certifications.length > 0 && (
-                <Card className="shadow-card">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-lg font-display">
-                      <Award className="h-5 w-5 text-accent" /> Certifications
+                <Card className="premium-card border-border/60">
+                  <CardHeader className="pb-3 px-6 pt-6">
+                    <CardTitle className="flex items-center gap-2.5 text-lg font-display">
+                      <div className="h-8 w-8 rounded-lg bg-accent/10 flex items-center justify-center">
+                        <Award className="h-4 w-4 text-accent" />
+                      </div>
+                      Certifications
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-3">
+                  <CardContent className="space-y-3 px-6 pb-6">
                     {parsedData.certifications.map((cert: any, idx: number) => (
-                      <div key={idx} className="flex items-start gap-2">
+                      <div key={idx} className="flex items-start gap-2.5">
                         {cert.verified ? <CheckCircle2 className="h-4 w-4 mt-0.5 score-high flex-shrink-0" /> : <XCircle className="h-4 w-4 mt-0.5 score-low flex-shrink-0" />}
                         <div>
                           <p className="text-sm font-medium text-foreground">{cert.name}</p>
@@ -353,16 +374,19 @@ export default function ReportPage() {
               )}
 
               {parsedData.links && parsedData.links.length > 0 && (
-                <Card className="shadow-card">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-lg font-display">
-                      <LinkIcon className="h-5 w-5 text-accent" /> Links
+                <Card className="premium-card border-border/60">
+                  <CardHeader className="pb-3 px-6 pt-6">
+                    <CardTitle className="flex items-center gap-2.5 text-lg font-display">
+                      <div className="h-8 w-8 rounded-lg bg-accent/10 flex items-center justify-center">
+                        <LinkIcon className="h-4 w-4 text-accent" />
+                      </div>
+                      Links
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-2">
+                  <CardContent className="space-y-2.5 px-6 pb-6">
                     {parsedData.links.map((link: any, idx: number) => (
                       <a key={idx} href={link.url} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-sm text-accent hover:underline">
+                        className="flex items-center gap-2 text-sm text-accent hover:underline transition-colors duration-200">
                         <LinkIcon className="h-3.5 w-3.5" />{link.label || link.url}
                       </a>
                     ))}
@@ -371,16 +395,19 @@ export default function ReportPage() {
               )}
 
               {parsedData.improvement_suggestions && parsedData.improvement_suggestions.length > 0 && (
-                <Card className="shadow-card">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-lg font-display">
-                      <Lightbulb className="h-5 w-5 text-accent" /> Suggestions
+                <Card className="premium-card border-border/60">
+                  <CardHeader className="pb-3 px-6 pt-6">
+                    <CardTitle className="flex items-center gap-2.5 text-lg font-display">
+                      <div className="h-8 w-8 rounded-lg bg-accent/10 flex items-center justify-center">
+                        <Lightbulb className="h-4 w-4 text-accent" />
+                      </div>
+                      Suggestions
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-2">
+                  <CardContent className="px-6 pb-6">
+                    <ul className="space-y-2.5">
                       {parsedData.improvement_suggestions.map((s: string, i: number) => (
-                        <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                        <li key={i} className="flex items-start gap-2.5 text-sm text-muted-foreground leading-relaxed">
                           <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-accent" />{s}
                         </li>
                       ))}

@@ -60,7 +60,6 @@ export default function UploadPage() {
 
       const filePath = `${user.id}/${Date.now()}-${file.name}`;
 
-      // Upload file directly to Supabase storage
       const { error: uploadError } = await supabase.storage
         .from("resume-files")
         .upload(filePath, file, { contentType: file.type || "application/octet-stream" });
@@ -111,18 +110,22 @@ export default function UploadPage() {
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
       <main className="flex-1 py-16">
-        <div className="container max-w-2xl mx-auto px-4">
-          <div className="text-center mb-10">
-            <h1 className="text-3xl font-display font-bold text-foreground mb-3">Upload Resume</h1>
-            <p className="text-muted-foreground">Upload a PDF or text file to analyze skill authenticity and generate a trust score.</p>
+        <div className="container max-w-2xl mx-auto px-6">
+          <div className="text-center mb-12">
+            <p className="text-sm font-semibold text-accent uppercase tracking-widest mb-3">Upload</p>
+            <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-3 tracking-tight">Upload Resume</h1>
+            <p className="text-muted-foreground leading-relaxed">Upload a PDF or text file to analyze skill authenticity and generate a trust score.</p>
           </div>
 
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             className={`
-              relative border-2 border-dashed rounded-xl p-12 text-center transition-all duration-200 cursor-pointer
-              ${dragActive ? "border-accent bg-accent/5" : "border-border hover:border-accent/50 bg-card"}
+              relative border-2 border-dashed rounded-2xl p-14 text-center transition-all duration-300 cursor-pointer
+              ${dragActive
+                ? "border-accent bg-accent/5 shadow-glow"
+                : "border-border/60 hover:border-accent/40 bg-card hover:shadow-elevated"
+              }
             `}
             onDragEnter={handleDrag}
             onDragOver={handleDrag}
@@ -137,8 +140,10 @@ export default function UploadPage() {
               className="hidden"
               onChange={handleFileInput}
             />
-            <Upload className="h-10 w-10 mx-auto mb-4 text-muted-foreground" />
-            <p className="text-foreground font-medium mb-1">Drag & drop your resume here</p>
+            <div className="h-14 w-14 rounded-2xl bg-secondary/80 flex items-center justify-center mx-auto mb-5">
+              <Upload className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <p className="text-foreground font-semibold mb-1.5">Drag & drop your resume here</p>
             <p className="text-sm text-muted-foreground">or click to browse. Supports PDF, DOC, DOCX, TXT</p>
           </motion.div>
 
@@ -148,13 +153,15 @@ export default function UploadPage() {
               animate={{ opacity: 1, height: "auto" }}
               className="mt-6 space-y-4"
             >
-              <div className="flex items-center gap-3 p-4 rounded-lg bg-card border border-border shadow-card">
-                <FileText className="h-8 w-8 text-accent flex-shrink-0" />
+              <div className="flex items-center gap-3 p-5 rounded-2xl bg-card border border-border/60 shadow-card">
+                <div className="h-10 w-10 rounded-xl bg-accent/10 flex items-center justify-center flex-shrink-0">
+                  <FileText className="h-5 w-5 text-accent" />
+                </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{file.name}</p>
-                  <p className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</p>
+                  <p className="text-xs text-muted-foreground/60 tabular-nums">{(file.size / 1024).toFixed(1)} KB</p>
                 </div>
-                <button onClick={(e) => { e.stopPropagation(); setFile(null); }} className="text-muted-foreground hover:text-foreground">
+                <button onClick={(e) => { e.stopPropagation(); setFile(null); }} className="text-muted-foreground hover:text-foreground transition-colors duration-200">
                   <X className="h-4 w-4" />
                 </button>
               </div>
@@ -162,7 +169,7 @@ export default function UploadPage() {
               <button
                 type="button"
                 onClick={() => setShowJD(!showJD)}
-                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full"
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors duration-200 w-full"
               >
                 {showJD ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                 <span>Add Job Description for relevance matching (optional)</span>
@@ -174,21 +181,21 @@ export default function UploadPage() {
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}
-                    className="space-y-3 p-4 rounded-lg bg-card border border-border"
+                    className="space-y-3 p-5 rounded-2xl bg-card border border-border/60"
                   >
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1.5">
-                        <Label htmlFor="role-title" className="text-xs">Role Title</Label>
-                        <Input id="role-title" placeholder="e.g. Senior Backend Engineer" value={roleTitle} onChange={(e) => setRoleTitle(e.target.value)} />
+                        <Label htmlFor="role-title" className="text-xs font-medium">Role Title</Label>
+                        <Input id="role-title" placeholder="e.g. Senior Backend Engineer" value={roleTitle} onChange={(e) => setRoleTitle(e.target.value)} className="rounded-xl" />
                       </div>
                       <div className="space-y-1.5">
-                        <Label htmlFor="exp-range" className="text-xs">Experience Range</Label>
-                        <Input id="exp-range" placeholder="e.g. 3-5 years" value={experienceRange} onChange={(e) => setExperienceRange(e.target.value)} />
+                        <Label htmlFor="exp-range" className="text-xs font-medium">Experience Range</Label>
+                        <Input id="exp-range" placeholder="e.g. 3-5 years" value={experienceRange} onChange={(e) => setExperienceRange(e.target.value)} className="rounded-xl" />
                       </div>
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="jd-text" className="text-xs">Job Description</Label>
-                      <Textarea id="jd-text" placeholder="Paste the full job description here..." value={jobDescription} onChange={(e) => setJobDescription(e.target.value)} rows={5} />
+                      <Label htmlFor="jd-text" className="text-xs font-medium">Job Description</Label>
+                      <Textarea id="jd-text" placeholder="Paste the full job description here..." value={jobDescription} onChange={(e) => setJobDescription(e.target.value)} rows={5} className="rounded-xl" />
                     </div>
                   </motion.div>
                 )}
@@ -197,7 +204,7 @@ export default function UploadPage() {
               <Button
                 onClick={handleAnalyze}
                 disabled={analyzing}
-                className="w-full h-12 gradient-accent text-accent-foreground border-0 font-semibold text-base hover:opacity-90 transition-opacity"
+                className="w-full h-13 gradient-accent text-accent-foreground border-0 font-semibold text-base hover:opacity-95 transition-all duration-300 rounded-xl shadow-sm hover:shadow-glow"
               >
                 {analyzing ? (
                   <>
