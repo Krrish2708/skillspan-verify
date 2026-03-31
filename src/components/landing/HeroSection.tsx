@@ -15,40 +15,82 @@ export function HeroSection() {
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-accent/10 rounded-full blur-[120px] pointer-events-none" />
       
       <div className="container relative max-w-7xl mx-auto px-6 text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+       <motion.div
+  initial={{ opacity: 0, y: 30 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+  className="relative"
+>
+  {/* Glow behind content */}
+  <div className="absolute inset-0 -z-10 flex justify-center">
+    <div className="w-[500px] h-[500px] bg-accent/20 blur-[120px] rounded-full opacity-60"></div>
+  </div>
+
+  {/* Badge */}
+  <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-white/10 bg-white/5 text-white/80 text-sm font-medium mb-10 backdrop-blur-md shadow-inner">
+    <Shield className="h-4 w-4 text-accent" />
+    AI-Powered Resume Verification
+  </div>
+
+  {/* Heading */}
+  <h1 className="text-5xl md:text-6xl lg:text-[5.2rem] font-display font-extrabold text-white mb-8 leading-[1.05] tracking-tight">
+    Verify Skills.
+    <br />
+    <span className="bg-gradient-to-r from-accent via-emerald-400 to-teal-400 bg-clip-text text-transparent drop-shadow-[0_0_25px_rgba(16,185,129,0.35)]">
+      Hire Truth.
+    </span>
+  </h1>
+
+  {/* Description */}
+  <p className="text-lg md:text-xl text-white/60 max-w-2xl mx-auto mb-12 leading-relaxed">
+    Stop guessing. Our AI engine cross-validates resume claims against real evidence — projects, repositories, certifications — and delivers trust scores you can act on.
+  </p>
+
+  {/* Buttons */}
+  <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+    
+    {/* Primary Button */}
+    <Link to="/dashboard">
+      <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.98 }}>
+        <Button
+          size="lg"
+          className="relative h-13 px-10 text-base font-semibold border-0 text-white overflow-hidden
+          bg-gradient-to-r from-accent via-emerald-500 to-teal-500
+          shadow-[0_10px_40px_rgba(16,185,129,0.35)]
+          hover:shadow-[0_0_30px_rgba(16,185,129,0.6)]
+          transition-all duration-300"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary-foreground/15 bg-primary-foreground/5 text-primary-foreground/80 text-sm font-medium mb-10 backdrop-blur-sm">
-            <Shield className="h-4 w-4" />
-            AI-Powered Resume Verification
-          </div>
-          <h1 className="text-5xl md:text-6xl lg:text-[5rem] font-display font-extrabold text-primary-foreground mb-8 leading-[1.08] tracking-tight">
-            Verify Skills.
-            <br />
-            <span className="bg-gradient-to-r from-accent to-accent/70 bg-clip-text text-transparent">Hire Truth.</span>
-          </h1>
-          <p className="text-lg md:text-xl text-primary-foreground/60 max-w-2xl mx-auto mb-12 leading-relaxed">
-            Stop guessing. Our AI engine cross-validates resume claims against real evidence — projects, repositories, certifications — and delivers trust scores you can act on.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link to="/dashboard">
-              <Button size="lg" className="gradient-accent text-accent-foreground border-0 h-13 px-10 text-base font-semibold shadow-heavy hover:shadow-glow hover:opacity-95 transition-all duration-300">
-                Start Verifying
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-            <Link to="/demo">
-              <div className="flex flex-col items-center">
-                <Button size="lg" variant="outline" className="h-13 px-10 text-base font-semibold border-primary-foreground/20 text-primary-foreground bg-primary-foreground/5 hover:bg-primary-foreground/10 backdrop-blur-sm transition-all duration-300">
-                  Continue as Guest
-                </Button>
-                <span className="text-xs text-primary-foreground/40 mt-2.5">Explore a live demo dashboard instantly</span>
-              </div>
-            </Link>
-          </div>
+          <span className="relative z-10 flex items-center">
+            Start Verifying
+            <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+          </span>
+
+          {/* Shine effect */}
+          <span className="absolute inset-0 opacity-0 hover:opacity-100 transition duration-500 bg-white/10 blur-xl"></span>
+        </Button>
+      </motion.div>
+    </Link>
+
+    {/* Secondary Button */}
+    <Link to="/demo">
+      <div className="flex flex-col items-center">
+        <motion.div whileHover={{ scale: 1.03 }}>
+          <Button
+            size="lg"
+            variant="outline"
+            className="h-13 px-10 text-base font-semibold border-white/10 text-white bg-white/5
+            hover:bg-white/10 backdrop-blur-md transition-all duration-300"
+          >
+            Continue as Guest
+          </Button>
         </motion.div>
+        <span className="text-xs text-white/40 mt-2.5">
+          Explore a live demo dashboard instantly
+        </span>
+      </div>
+    </Link>
+  </div>
+</motion.div>
 
         {/* Technical Capabilities */}
         <motion.div
