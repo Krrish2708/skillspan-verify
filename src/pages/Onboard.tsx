@@ -32,11 +32,11 @@ export default function OnboardPage() {
     setSubmitting(true);
     try {
       // Check if role already exists
-      const { data: existing } = await supabase
-        .from("user_roles")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
+     const { data: existing } = await supabase
+  .from("user_roles")
+  .select("id, role")
+  .eq("user_id", user.id)
+  .maybeSingle();
 
       if (existing) {
         toast({ title: "Role already set", variant: "destructive" });
