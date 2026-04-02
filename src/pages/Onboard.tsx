@@ -38,11 +38,13 @@ export default function OnboardPage() {
   .eq("user_id", user.id)
   .maybeSingle();
 
-      if (existing) {
-        toast({ title: "Role already set", variant: "destructive" });
-        await refreshProfile();
-        return;
-      }
+   if (existing) {
+  await refreshProfile();
+  navigate(existing.role === "candidate" ? "/candidate" : "/dashboard", {
+    replace: true,
+  });
+  return;
+}
 
       const { error } = await supabase
         .from("user_roles")
