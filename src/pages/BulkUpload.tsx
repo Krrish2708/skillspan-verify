@@ -58,7 +58,20 @@ export default function BulkUploadPage() {
   const removeFile = (idx: number) => {
     setFiles((prev) => prev.filter((_, i) => i !== idx));
   };
-
+const extractTextFromFile = async (file: File): Promise<string> => {
+  if (file.type === "text/plain") {
+    return await file.text();
+  }
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = (reader.result as string).split(",")[1];
+      resolve(`BASE64_PDF:${base64}`);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+};
   const processAll = async () => {
     if (!user || !profileId || files.length === 0) return;
     setProcessing(true);
@@ -94,7 +107,7 @@ export default function BulkUploadPage() {
 
         setFiles((prev) => prev.map((item, idx) => idx === i ? { ...item, status: "analyzing", resumeId } : item));
 
-        const resumeText = await f.file.text();
+        const resumeText = await extractTextFromFile(f.file);
         const fnData = await invokeEdgeFunction("parse-resume", {
           resumeId,
           resumeText,
