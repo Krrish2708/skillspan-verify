@@ -59,19 +59,53 @@ export default function BulkUploadPage() {
     setFiles((prev) => prev.filter((_, i) => i !== idx));
   };
 const extractTextFromFile = async (file: File): Promise<string> => {
-  if (file.type === "text/plain") {
-    return await file.text();
-  }
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const base64 = (reader.result as string).split(",")[1];
-      resolve(`BASE64_PDF:${base64}`);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-};
+    if (file.type === "text/plain") {
+      return await file.text();
+    }
+
+    if (file.type === "application/pdf") {
+      try {
+        await new Promise<void>((resolve, reject) => {
+          if ((window as any).pdfjsLib) { resolve(); return; }
+          const script = document.createElement("script");
+          script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+          script.onload = () => resolve();
+          script.onerror = () => reject();
+          document.head.appendChild(script);
+        });
+
+        const pdfjsLib = (window as any).pdfjsLib;
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+          "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+        let fullText = "";
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items
+            .map((item: any) => item.str)
+            .join(" ");
+          fullText += pageText + "\n";
+        }
+        return fullText.trim();
+      } catch (e) {
+        console.error("PDF.js failed:", e);
+      }
+    }
+
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = (reader.result as string).split(",")[1];
+        resolve(`BASE64_PDF:${base64}`);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
   const processAll = async () => {
     if (!user || !profileId || files.length === 0) return;
     setProcessing(true);
