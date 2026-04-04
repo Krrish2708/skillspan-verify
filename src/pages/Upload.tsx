@@ -42,6 +42,21 @@ export default function UploadPage() {
     if (e.target.files?.[0]) setFile(e.target.files[0]);
   };
 
+  const extractTextFromFile = async (file: File): Promise<string> => {
+    if (file.type === "text/plain") {
+      return await file.text();
+    }
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = (reader.result as string).split(",")[1];
+        resolve(`BASE64_PDF:${base64}`);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleAnalyze = async () => {
     if (!file || !user || !profileId) {
       if (!user) {
@@ -80,7 +95,7 @@ export default function UploadPage() {
       const resumeId = resume.id;
 
       setStatusText("Extracting text...");
-      const resumeText = await file.text();
+      const resumeText = await extractTextFromFile(file);
 
       setStatusText("AI is analyzing your resume...");
       const fnData = await invokeEdgeFunction("parse-resume", {
