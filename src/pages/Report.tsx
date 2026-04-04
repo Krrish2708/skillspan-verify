@@ -116,10 +116,13 @@ export default function ReportPage() {
     );
   }
 
-  const parsedData = (resume.parsed_data || {}) as ParsedData;
-  const atsBreakdown = parsedData.ats_breakdown;
-  const credBreakdown = parsedData.credibility_breakdown;
-  const hasJD = !!resume.job_description;
+const parsedData = (resume.parsed_data || {}) as ParsedData;
+const atsBreakdown = parsedData.ats_breakdown;
+const credBreakdown = parsedData.credibility_breakdown;
+const hasJD = !!resume.job_description;
+const rel = resume.relevancy_score || 0;
+const cred = resume.credibility_score || 0;
+const calculatedOverall = rel > 0 ? Math.round((rel * 0.5) + (cred * 0.5)) : cred;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -131,7 +134,7 @@ export default function ReportPage() {
           </Link>
 
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col md:flex-row items-start md:items-center gap-6 mb-10">
-            <ScoreBadge score={resume.overall_score} size="xl" />
+            <ScoreBadge score={calculatedOverall} size="xl" />
             <div className="flex-1">
               <h1 className="text-3xl font-display font-bold text-foreground tracking-tight">{resume.candidate_name || "Unknown Candidate"}</h1>
               <p className="text-muted-foreground mt-1">{resume.candidate_role || "Unknown Role"}</p>
@@ -143,7 +146,7 @@ export default function ReportPage() {
           </motion.div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-5 mb-10">
-            <ScoreCard label="Overall" score={resume.overall_score} />
+            <ScoreCard label="Overall" score={calculatedOverall} />
             <ScoreCard label="ATS Score" score={resume.ats_score} />
             <ScoreCard label="Credibility" score={resume.credibility_score} />
             <ScoreCard label="Relevancy" score={hasJD ? resume.relevancy_score : 0} subtitle={!hasJD ? "No JD provided" : undefined} />
@@ -313,7 +316,7 @@ export default function ReportPage() {
                   <CardTitle className="text-lg font-display">Trust Summary</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3 px-6 pb-6">
-                  <ScoreBar score={resume.overall_score} label="Overall Trust" />
+                  <ScoreBar score={calculatedOverall} label="Overall Trust" />
                   <Separator />
                   <div className="text-sm space-y-3">
                     <div className="flex justify-between">
