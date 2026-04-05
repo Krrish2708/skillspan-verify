@@ -10,7 +10,7 @@ import { motion } from "framer-motion";
 import {
   Download, AlertTriangle, CheckCircle2, XCircle, Briefcase, Code2, Award,
   ArrowLeft, Loader2, FileSearch, ShieldCheck, GraduationCap, Link as LinkIcon,
-  Target, Lightbulb,
+  Target, Lightbulb, Users,
 } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -396,16 +396,30 @@ const calculatedOverall = rel > 0 ? Math.round((rel * 0.5) + (cred * 0.5)) : cre
                   </CardContent>
                 </Card>
               )}
-
+{parsedData.strength_summary && (
+  <Card className="premium-card border-border/60">
+    <CardHeader className="pb-3 px-6 pt-6">
+      <CardTitle className="flex items-center gap-2.5 text-lg font-display">
+        <div className="h-8 w-8 rounded-lg bg-accent/10 flex items-center justify-center">
+          <Users className="h-4 w-4 text-accent" />
+        </div>
+        Candidate Summary
+      </CardTitle>
+    </CardHeader>
+    <CardContent className="px-6 pb-6">
+      <p className="text-sm text-muted-foreground leading-relaxed">{parsedData.strength_summary}</p>
+    </CardContent>
+  </Card>
+)}
               {parsedData.improvement_suggestions && parsedData.improvement_suggestions.length > 0 && (
                 <Card className="premium-card border-border/60">
                   <CardHeader className="pb-3 px-6 pt-6">
                     <CardTitle className="flex items-center gap-2.5 text-lg font-display">
-                      <div className="h-8 w-8 rounded-lg bg-accent/10 flex items-center justify-center">
-                        <Lightbulb className="h-4 w-4 text-accent" />
-                      </div>
-                      Suggestions
-                    </CardTitle>
+  <div className="h-8 w-8 rounded-lg bg-accent/10 flex items-center justify-center">
+    <Lightbulb className="h-4 w-4 text-accent" />
+  </div>
+  HR Notes
+</CardTitle>
                   </CardHeader>
                   <CardContent className="px-6 pb-6">
                     <ul className="space-y-2.5">
