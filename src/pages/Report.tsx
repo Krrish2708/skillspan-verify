@@ -438,7 +438,7 @@ const calculatedOverall = rel > 0 ? Math.round((rel * 0.5) + (cred * 0.5)) : cre
           isMaybe ? "bg-yellow-500/10 text-yellow-600" :
           "bg-red-500/10 text-red-500"
         }`}>
-          {Hire Recommendation: {verdict}}
+          {`Hire Recommendation: ${verdict}`}
         </div>
       );
     }
