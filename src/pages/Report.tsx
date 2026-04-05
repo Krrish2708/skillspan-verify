@@ -438,13 +438,13 @@ const calculatedOverall = rel > 0 ? Math.round((rel * 0.5) + (cred * 0.5)) : cre
           isMaybe ? "bg-yellow-500/10 text-yellow-600" :
           "bg-red-500/10 text-red-500"
         }`}>
-          {verdict}
+          {Hire Recommendation: {verdict}}
         </div>
       );
     }
     return (
       <li key={i} className="flex items-start gap-2.5 text-sm text-muted-foreground leading-relaxed list-none">
-        <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-yellow-500" />{s.replace("Reason:", "").replace("Concern 1:", "⚠️").replace("Concern 2:", "⚠️")}
+       <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-yellow-500" />{s.replace("Reason:", "").replace("Concern 1:", "").replace("Concern 2:", "")}
       </li>
     );
   })}
