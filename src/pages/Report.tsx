@@ -422,13 +422,33 @@ const calculatedOverall = rel > 0 ? Math.round((rel * 0.5) + (cred * 0.5)) : cre
 </CardTitle>
                   </CardHeader>
                   <CardContent className="px-6 pb-6">
-                    <ul className="space-y-2.5">
-                      {parsedData.improvement_suggestions.map((s: string, i: number) => (
-                        <li key={i} className="flex items-start gap-2.5 text-sm text-muted-foreground leading-relaxed">
-                          <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-accent" />{s}
-                        </li>
-                      ))}
-                    </ul>
+                 <div className="space-y-3">
+  {parsedData.improvement_suggestions.map((s: string, i: number) => {
+    const isVerdict = s.startsWith("HIRE_RECOMMENDATION:");
+    const verdict = s.replace("HIRE_RECOMMENDATION:", "").trim();
+    const isStrongHire = verdict.includes("Strong Hire");
+    const isHire = verdict.includes("Hire") && !verdict.includes("Strong");
+    const isMaybe = verdict.includes("Maybe");
+    
+    if (isVerdict) {
+      return (
+        <div key={i} className={`p-3 rounded-xl text-center font-bold text-sm ${
+          isStrongHire ? "bg-green-500/10 text-green-600" :
+          isHire ? "bg-green-400/10 text-green-500" :
+          isMaybe ? "bg-yellow-500/10 text-yellow-600" :
+          "bg-red-500/10 text-red-500"
+        }`}>
+          {verdict}
+        </div>
+      );
+    }
+    return (
+      <li key={i} className="flex items-start gap-2.5 text-sm text-muted-foreground leading-relaxed list-none">
+        <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-yellow-500" />{s.replace("Reason:", "").replace("Concern 1:", "⚠️").replace("Concern 2:", "⚠️")}
+      </li>
+    );
+  })}
+</div>
                   </CardContent>
                 </Card>
               )}
