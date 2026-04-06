@@ -411,7 +411,7 @@ const calculatedOverall = rel > 0 ? Math.round((rel * 0.5) + (cred * 0.5)) : cre
     </CardContent>
   </Card>
 )}
-              {parsedData.improvement_suggestions && parsedData.improvement_suggestions.length > 0 && (
+              {parsedData.hr_notes && parsedData.hr_notes.length > 0 && (
                 <Card className="premium-card border-border/60">
                   <CardHeader className="pb-3 px-6 pt-6">
                     <CardTitle className="flex items-center gap-2.5 text-lg font-display">
@@ -423,7 +423,7 @@ const calculatedOverall = rel > 0 ? Math.round((rel * 0.5) + (cred * 0.5)) : cre
                   </CardHeader>
                   <CardContent className="px-6 pb-6">
                  <div className="space-y-3">
-  {parsedData.improvement_suggestions.map((s: string, i: number) => {
+  {parsedData.hr_notes.map((s: string, i: number) => {
     const isVerdict = s.startsWith("HIRE_RECOMMENDATION:");
     const verdict = s.replace("HIRE_RECOMMENDATION:", "").trim();
     const isStrongHire = verdict.includes("Strong Hire");
