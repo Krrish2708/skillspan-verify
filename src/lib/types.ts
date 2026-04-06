@@ -51,6 +51,7 @@ export interface ParsedData {
   education?: EducationItem[];
   links?: ResumeLink[];
   improvement_suggestions?: string[];
+  hr_notes?: string[];
   timeline_consistency?: "consistent" | "minor_gaps" | "inconsistent";
   strength_summary?: string;
   missing_evidence?: string[];
