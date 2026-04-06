@@ -406,7 +406,7 @@ export default function CandidateDashboard() {
                       </CardHeader>
                       <CardContent className="px-6 pb-6">
                         <ul className="space-y-3">
-                          {filterCandidateSuggestions(result.parsed_data.improvement_suggestions).map((s, i) => (
+                          {result.parsed_data.improvement_suggestions.map((s, i) => (
                             <li key={i} className="flex items-start gap-2.5 text-sm text-muted-foreground leading-relaxed">
                               <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-accent" />{s}
                             </li>
