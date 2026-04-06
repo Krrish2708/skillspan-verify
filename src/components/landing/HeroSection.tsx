@@ -1,159 +1,228 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Shield, ArrowRight, Brain, Target, ShieldCheck, SlidersHorizontal } from "lucide-react";
+import { ArrowRight, CheckCircle2, Github, Shield, Star } from "lucide-react";
 import { motion } from "framer-motion";
+
+const mockSkills = [
+  { name: "React", score: 88, verified: true },
+  { name: "Node.js", score: 82, verified: true },
+  { name: "AWS", score: 24, verified: false },
+  { name: "Docker", score: 20, verified: false },
+];
 
 export function HeroSection() {
   return (
-    <section className="relative overflow-hidden gradient-hero py-32 md:py-48">
-      {/* Dot grid */}
-      <div className="absolute inset-0 opacity-[0.06]" style={{
-        backgroundImage: `radial-gradient(circle, rgba(255,255,255,0.6) 1px, transparent 1px)`,
-        backgroundSize: '28px 28px',
+    <section className="relative min-h-screen overflow-hidden bg-[#080c10]">
+      {/* Layered mesh gradients */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_60%_-10%,rgba(16,185,129,0.18),transparent)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_40%_at_100%_80%,rgba(20,184,166,0.08),transparent)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_40%_30%_at_0%_60%,rgba(6,78,59,0.15),transparent)]" />
+
+      {/* Fine grid */}
+      <div className="absolute inset-0 opacity-[0.04]" style={{
+        backgroundImage: `linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)`,
+        backgroundSize: '60px 60px',
       }} />
 
-      {/* Ambient glow orbs */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[600px] bg-accent/10 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-teal-500/8 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-[350px] h-[350px] bg-emerald-500/6 rounded-full blur-[100px] pointer-events-none" />
+      <div className="container max-w-7xl mx-auto px-6 pt-28 pb-20 relative">
+        <div className="grid lg:grid-cols-2 gap-16 items-center min-h-[calc(100vh-7rem)]">
 
-      <div className="container relative max-w-7xl mx-auto px-6">
-        <div className="flex flex-col items-center text-center">
-
-          {/* Badge */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/5 text-white/70 text-xs font-semibold mb-10 backdrop-blur-md tracking-widest uppercase"
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-            AI-Powered Resume Verification
-          </motion.div>
-
-          {/* Heading */}
-          <motion.h1
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-            className="text-5xl md:text-6xl lg:text-[5.5rem] font-display font-extrabold text-white mb-6 leading-[1.04] tracking-tight"
-          >
-            Verify Skills.
-            <br />
-            <span className="relative">
-              <span className="bg-gradient-to-r from-accent via-emerald-400 to-teal-300 bg-clip-text text-transparent">
-                Hire Truth.
+          {/* ── LEFT ── */}
+          <div className="flex flex-col justify-center">
+            {/* Live badge */}
+            <motion.div
+              initial={{ opacity: 0, x: -16 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5 }}
+              className="inline-flex items-center gap-2.5 w-fit mb-10"
+            >
+              <span className="flex h-2 w-2 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
               </span>
-              {/* Underline accent */}
-              <motion.span
-                initial={{ scaleX: 0 }}
-                animate={{ scaleX: 1 }}
-                transition={{ delay: 0.8, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                className="absolute -bottom-2 left-0 right-0 h-[3px] bg-gradient-to-r from-accent/60 via-emerald-400/60 to-transparent rounded-full origin-left"
-              />
-            </span>
-          </motion.h1>
+              <span className="text-emerald-400/80 text-xs font-semibold tracking-[0.15em] uppercase">
+                AI-Powered Resume Verification
+              </span>
+            </motion.div>
 
-          {/* Description */}
-          <motion.p
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.25 }}
-            className="text-base md:text-lg text-white/55 max-w-xl mx-auto mb-12 leading-relaxed font-light"
-          >
-            Stop guessing. Our AI engine cross-validates resume claims against real evidence —
-            projects, repositories, certifications — and delivers trust scores you can act on.
-          </motion.p>
+            {/* Heading */}
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <h1 className="font-display font-black text-white leading-[1.02] tracking-tight mb-7">
+                <span className="block text-[3.8rem] md:text-[4.8rem] lg:text-[5rem]">Stop Hiring</span>
+                <span className="block text-[3.8rem] md:text-[4.8rem] lg:text-[5rem]">
+                  on{" "}
+                  <span className="relative inline-block">
+                    <span className="relative z-10 bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-500 bg-clip-text text-transparent">
+                      Guesswork.
+                    </span>
+                    <span className="absolute -inset-2 bg-emerald-500/10 blur-2xl rounded-xl" />
+                  </span>
+                </span>
+              </h1>
+              <p className="text-white/45 text-lg leading-relaxed max-w-md mb-10 font-light">
+                Our AI engine cross-validates every resume claim against real evidence —
+                GitHub repos, project links, certifications — and delivers a trust score you can act on.
+              </p>
+            </motion.div>
 
-          {/* CTA Buttons */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.35 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20"
-          >
-            <Link to="/dashboard">
-              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-                <Button
-                  size="lg"
-                  className="relative h-12 px-9 text-sm font-semibold border-0 text-white overflow-hidden rounded-xl
-                    bg-gradient-to-r from-accent via-emerald-500 to-teal-500
-                    shadow-[0_8px_32px_rgba(16,185,129,0.4)]
-                    hover:shadow-[0_8px_40px_rgba(16,185,129,0.6)]
-                    transition-all duration-300"
-                >
-                  Start Verifying
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </motion.div>
-            </Link>
-
-            <Link to="/demo">
-              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                <div className="flex flex-col items-center gap-1.5">
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="h-12 px-9 text-sm font-semibold rounded-xl border-white/10 text-white/80 bg-white/[0.04]
-                      hover:bg-white/[0.08] hover:text-white hover:border-white/20 backdrop-blur-md transition-all duration-300"
-                  >
-                    Continue as Guest
+            {/* CTA buttons */}
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+              className="flex flex-wrap items-center gap-4 mb-14"
+            >
+              <Link to="/dashboard">
+                <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+                  <Button className="h-12 px-8 text-sm font-bold rounded-xl border-0 text-white
+                    bg-gradient-to-r from-emerald-500 to-teal-500
+                    shadow-[0_0_24px_rgba(16,185,129,0.4)]
+                    hover:shadow-[0_0_40px_rgba(16,185,129,0.6)]
+                    transition-all duration-300">
+                    Start Verifying Free
+                    <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
-                  <span className="text-[11px] text-white/35 tracking-wide">Explore live demo instantly</span>
-                </div>
-              </motion.div>
-            </Link>
-          </motion.div>
+                </motion.div>
+              </Link>
+              <Link to="/demo">
+                <Button variant="ghost" className="h-12 px-6 text-sm font-medium text-white/50 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
+                  View live demo →
+                </Button>
+              </Link>
+            </motion.div>
 
-          {/* Social proof bar */}
+            {/* Trust signals */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+              className="flex flex-col gap-3"
+            >
+              {[
+                "GitHub cross-referencing included for free",
+                "Full analysis in under 30 seconds",
+                "No credit card required to start",
+              ].map((item, i) => (
+                <div key={i} className="flex items-center gap-2.5">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500 flex-shrink-0" />
+                  <span className="text-white/40 text-sm">{item}</span>
+                </div>
+              ))}
+            </motion.div>
+          </div>
+
+          {/* ── RIGHT: Product mockup ── */}
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.6, duration: 0.6 }}
-            className="flex flex-wrap items-center justify-center gap-6 mb-20"
+            initial={{ opacity: 0, x: 40, y: 20 }}
+            animate={{ opacity: 1, x: 0, y: 0 }}
+            transition={{ duration: 0.9, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="hidden lg:flex justify-center items-center"
           >
-            {[
-              { value: "500+", label: "Resumes Verified" },
-              { value: "3 AI", label: "Verification Layers" },
-              { value: "< 30s", label: "Analysis Time" },
-              { value: "GitHub", label: "Cross-Referenced" },
-            ].map((stat, i) => (
-              <div key={i} className="flex items-center gap-2.5">
-                {i > 0 && <span className="w-px h-4 bg-white/10" />}
-                <span className="text-white/90 font-bold text-sm">{stat.value}</span>
-                <span className="text-white/35 text-xs">{stat.label}</span>
+            <div className="relative w-full max-w-md">
+              <div className="absolute inset-0 bg-emerald-500/10 blur-[60px] rounded-3xl" />
+
+              <div className="relative bg-white/[0.04] border border-white/10 rounded-3xl p-6 backdrop-blur-xl shadow-[0_32px_64px_rgba(0,0,0,0.5)]">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-emerald-500/20 border border-emerald-500/20 flex items-center justify-center">
+                      <Shield className="h-5 w-5 text-emerald-400" />
+                    </div>
+                    <div>
+                      <p className="text-white text-sm font-semibold">Alex Chen</p>
+                      <p className="text-white/40 text-xs">Full Stack Developer</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-3xl font-black text-emerald-400">82</p>
+                    <p className="text-white/30 text-[10px] uppercase tracking-wider">Trust Score</p>
+                  </div>
+                </div>
+
+                {/* Score bars */}
+                <div className="space-y-1 mb-5">
+                  {[
+                    { label: "ATS Score", value: 78, color: "bg-blue-400" },
+                    { label: "Credibility", value: 82, color: "bg-emerald-400" },
+                    { label: "Relevancy", value: 86, color: "bg-teal-400" },
+                  ].map((bar, i) => (
+                    <div key={i} className="flex items-center gap-3 py-1.5">
+                      <span className="text-white/40 text-xs w-20 flex-shrink-0">{bar.label}</span>
+                      <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${bar.value}%` }}
+                          transition={{ delay: 0.8 + i * 0.1, duration: 0.8, ease: "easeOut" }}
+                          className={`h-full ${bar.color} rounded-full`}
+                        />
+                      </div>
+                      <span className="text-white/60 text-xs w-8 text-right">{bar.value}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="h-px bg-white/5 mb-5" />
+
+                {/* Skills */}
+                <p className="text-white/30 text-[10px] uppercase tracking-widest mb-3">Skill Verification</p>
+                <div className="space-y-2.5">
+                  {mockSkills.map((skill, i) => (
+                    <motion.div
+                      key={skill.name}
+                      initial={{ opacity: 0, x: 10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 1 + i * 0.08 }}
+                      className="flex items-center gap-3"
+                    >
+                      <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${skill.verified ? 'bg-emerald-400' : 'bg-red-400/70'}`} />
+                      <span className="text-white/70 text-sm flex-1">{skill.name}</span>
+                      <div className="w-24 h-1 bg-white/5 rounded-full overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${skill.score}%` }}
+                          transition={{ delay: 1.1 + i * 0.08, duration: 0.6 }}
+                          className={`h-full rounded-full ${skill.verified ? 'bg-emerald-400' : 'bg-red-400/70'}`}
+                        />
+                      </div>
+                      <span className={`text-xs w-8 text-right ${skill.verified ? 'text-emerald-400' : 'text-red-400/70'}`}>{skill.score}%</span>
+                    </motion.div>
+                  ))}
+                </div>
+
+                <div className="h-px bg-white/5 my-5" />
+
+                {/* GitHub row */}
+                <div className="flex items-center gap-2.5 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                  <Github className="h-4 w-4 text-white/50" />
+                  <span className="text-white/40 text-xs flex-1">github.com/alexchen</span>
+                  <span className="text-emerald-400 text-xs font-semibold flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" /> Verified
+                  </span>
+                </div>
               </div>
-            ))}
-          </motion.div>
 
-          {/* Capability Cards */}
-          <motion.div
-            initial={{ opacity: 0, y: 32 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-5xl w-full mx-auto"
-          >
-            {[
-              { icon: Brain, title: "AI Resume Scoring", desc: "Evaluates skills, experience, and evidence dimensions." },
-              { icon: Target, title: "JD Relevance Modeling", desc: "Semantic similarity between resume and job requirements." },
-              { icon: ShieldCheck, title: "Evidence Validation", desc: "Verifies certifications, repositories, and project links." },
-              { icon: SlidersHorizontal, title: "Weighted Scoring", desc: "Dynamic adjustment of relevance vs credibility weights." },
-            ].map((item, i) => (
+              {/* Floating badges */}
               <motion.div
-                key={item.title}
-                initial={{ opacity: 0, y: 16 }}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 + i * 0.08, duration: 0.5 }}
-                className="group text-left p-5 rounded-2xl border border-white/[0.07] bg-white/[0.03] backdrop-blur-md
-                  hover:bg-white/[0.07] hover:border-white/[0.12] transition-all duration-300 cursor-default"
+                transition={{ delay: 1.2 }}
+                className="absolute -top-4 -right-4 bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5"
               >
-                <div className="h-8 w-8 rounded-lg bg-accent/15 flex items-center justify-center mb-3 group-hover:bg-accent/25 transition-colors duration-300">
-                  <item.icon className="h-4 w-4 text-accent" />
-                </div>
-                <div className="text-[13px] font-semibold text-white/85 mb-1.5 leading-snug">{item.title}</div>
-                <div className="text-[11px] text-white/40 leading-relaxed">{item.desc}</div>
+                <Star className="h-3 w-3 fill-white" /> Strong Hire
               </motion.div>
-            ))}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.4 }}
+                className="absolute -bottom-4 -left-4 bg-white/5 border border-white/10 backdrop-blur-xl text-white/70 text-xs font-medium px-4 py-2 rounded-full"
+              >
+                ⚡ Analyzed in 18s
+              </motion.div>
+            </div>
           </motion.div>
         </div>
       </div>
