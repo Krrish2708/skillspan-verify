@@ -179,27 +179,19 @@ export default function ReportsPage() {
 
                           {/* Score pills row */}
                           {resume.status === "completed" && (
-                            <div className="flex items-center gap-1.5 mb-4">
-                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md tabular-nums ${
-                                (resume.ats_score || 0) >= 75 ? "bg-blue-500/10 text-blue-600" :
-                                (resume.ats_score || 0) >= 50 ? "bg-yellow-500/10 text-yellow-600" :
-                                "bg-red-500/10 text-red-500"
-                              }`}>
-                                ATS {resume.ats_score || 0}
-                              </span>
-                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md tabular-nums ${
-                                (resume.credibility_score || 0) >= 75 ? "bg-purple-500/10 text-purple-600" :
-                                (resume.credibility_score || 0) >= 50 ? "bg-purple-500/10 text-purple-500" :
-                                "bg-red-500/10 text-red-500"
-                              }`}>
-                                Cred {resume.credibility_score || 0}
-                              </span>
-                              {(resume.relevancy_score || 0) > 0 && (
-                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md tabular-nums bg-emerald-500/10 text-emerald-600">
-                                  Rel {resume.relevancy_score}
-                                </span>
-                              )}
-                            </div>
+                      <div className="flex items-center gap-4 mb-4">
+  <span className="text-xs text-muted-foreground">
+    ATS: <span className="font-semibold text-foreground tabular-nums">{resume.ats_score || 0}</span>
+  </span>
+  <span className="text-xs text-muted-foreground">
+    Cred: <span className="font-semibold text-foreground tabular-nums">{resume.credibility_score || 0}</span>
+  </span>
+  {(resume.relevancy_score || 0) > 0 && (
+    <span className="text-xs text-muted-foreground">
+      Rel: <span className="font-semibold text-foreground tabular-nums">{resume.relevancy_score}</span>
+    </span>
+  )}
+</div>
                           )}
 
                           {/* Bottom row: date + verified icon */}
