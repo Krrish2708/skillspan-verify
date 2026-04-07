@@ -68,7 +68,7 @@ export function FeaturesSection() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            viewport={{ once: true, margin: "-80px" }}
             transition={{ duration: 0.55 }}
             className="max-w-xl"
           >
@@ -85,7 +85,7 @@ export function FeaturesSection() {
           <motion.p
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            viewport={{ once: true, margin: "-80px" }}
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-muted-foreground text-base leading-relaxed max-w-sm md:text-right"
           >
@@ -98,10 +98,10 @@ export function FeaturesSection() {
           {features.map((feature, i) => (
             <motion.div
               key={feature.title}
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.06, duration: 0.4 }}
+              initial={{ opacity: 0, y: 20 }}
+whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-80px" }}
+              transition={{ delay: i * 0.08, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
               className="group relative bg-background p-8 hover:bg-secondary/30 transition-colors duration-300 cursor-default"
             >
               {/* Number + tag row */}
