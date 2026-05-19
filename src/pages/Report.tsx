@@ -17,6 +17,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import type { Resume, ResumeSkill, ParsedData } from "@/lib/types";
+import { exportReportPDF } from "@/lib/exportPDF";
 
 const confidenceConfig = {
   verified: { icon: CheckCircle2, label: "Verified", color: "text-emerald-600", bg: "bg-emerald-500/10 border-emerald-500/20" },
@@ -43,6 +44,7 @@ function ScoreCard({ label, score, subtitle }: { label: string; score: number | 
 export default function ReportPage() {
   const { id } = useParams<{ id: string }>();
   const { profileId } = useAuth();
+  const [exporting, setExporting] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["resume-report", id],
@@ -125,6 +127,17 @@ export default function ReportPage() {
   const calculatedOverall = rel > 0 ? Math.round((rel * 0.5) + (cred * 0.5)) : cred;
   const verifiedSkills = skills.filter(s => s.confidence === "verified").length;
   const atRiskSkills = skills.filter(s => s.confidence === "unverified").length;
+  const handleExportPDF = async () => {
+  if (!resume) return;
+  setExporting(true);
+  try {
+    await exportReportPDF(resume, skills, calculatedOverall);
+  } catch (err) {
+    console.error("PDF export failed:", err);
+  } finally {
+    setExporting(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -154,9 +167,9 @@ export default function ReportPage() {
               </p>
               <p className="text-sm text-muted-foreground/50 mt-1">{resume.file_name}</p>
             </div>
-            <Button variant="outline" className="gap-2 border-border/60 rounded-xl" disabled>
-              <Download className="h-4 w-4" /> Export PDF
-            </Button>
+          <Button variant="outline" className="gap-2 border-border/60 rounded-xl" onClick={handleExportPDF} disabled={exporting}>
+  {exporting ? <><Loader2 className="h-4 w-4 animate-spin" /> Generating...</> : <><Download className="h-4 w-4" /> Export PDF</>}
+</Button>
           </motion.div>
 
           {/* ── Score Cards ── */}
