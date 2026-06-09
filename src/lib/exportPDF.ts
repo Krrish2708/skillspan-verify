@@ -312,7 +312,7 @@ export async function exportReportPDF(
     // Contact info
     checkPageBreak(8);
     const ciColor = atsBreakdown.contact_info_present ? C.teal : C.red;
-    const ciText = atsBreakdown.contact_info_present ? "✓  Contact info detected" : "✗  Contact info missing";
+    const ciText = atsBreakdown.contact_info_present ? "✔ Contact info detected" : "✘ Contact info missing";
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.setTextColor(...ciColor);
@@ -356,7 +356,8 @@ export async function exportReportPDF(
       doc.setFont("helvetica", "bold");
       doc.setFontSize(9);
       doc.setTextColor(...C.dark);
-      doc.text(skill.skill_name, MARGIN, y + 3.5);
+      const skillLabel = skill.skill_name.length > 20 ? skill.skill_name.substring(0, 20) + "..." : skill.skill_name;
+doc.text(skillLabel, MARGIN, y + 3.5);
       doc.setTextColor(...scoreColor(skill.score));
       doc.text(`${skill.score}%`, MARGIN + CONTENT_W, y + 3.5, { align: "right" });
 
@@ -364,8 +365,9 @@ export async function exportReportPDF(
       doc.setFillColor(...C.border);
       doc.roundedRect(MARGIN + 35, y + 0.5, CONTENT_W - 35 - 12, 3, 1, 1, "F");
       const fw = ((CONTENT_W - 35 - 12) * skill.score) / 100;
-      doc.setFillColor(...scoreColor(skill.score));
-      doc.roundedRect(MARGIN + 35, y + 0.5, fw, 3, 1, 1, "F");
+      const barColor = skill.confidence === "verified" ? C.teal : skill.confidence === "partially_verified" ? C.yellow : C.red;
+doc.setFillColor(...barColor);
+doc.roundedRect(MARGIN + 35, y + 0.5, fw, 3, 1, 1, "F");
 
       y += 8;
     });
@@ -390,7 +392,7 @@ export async function exportReportPDF(
       // Verified icon
       if (item.verified) {
         doc.setTextColor(...C.teal);
-        doc.text("✓", MARGIN + CONTENT_W - 6, y + 6.5);
+        doc.text("OK", MARGIN + CONTENT_W - 6, y + 6.5);
       }
       y += 13;
     });
@@ -419,7 +421,7 @@ export async function exportReportPDF(
     parsedData.certifications.forEach((cert: any) => {
       checkPageBreak(10);
       const vColor = cert.verified ? C.teal : C.red;
-      const vText = cert.verified ? "✓" : "✗";
+      const vText = cert.verified ? "+" : "-";
       doc.setFont("helvetica", "bold");
       doc.setFontSize(8);
       doc.setTextColor(...vColor);
