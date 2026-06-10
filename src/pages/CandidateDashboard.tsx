@@ -130,6 +130,19 @@ const extractTextFromFile = async (file: File): Promise<string> => {
   if (file.type === "text/plain") {
     return await file.text();
   }
+  if (
+  file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+  file.name.endsWith(".docx")
+) {
+  try {
+    const mammoth = await import("mammoth");
+    const arrayBuffer = await file.arrayBuffer();
+    const result = await mammoth.extractRawText({ arrayBuffer });
+    return result.value.trim();
+  } catch (e) {
+    console.error("Mammoth DOCX extraction failed:", e);
+  }
+}
   if (file.type === "application/pdf") {
     try {
       await new Promise<void>((resolve, reject) => {
